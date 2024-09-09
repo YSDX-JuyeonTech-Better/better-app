@@ -1,5 +1,4 @@
 import Header from "@/components/Header";
-import { Ionicons } from "@expo/vector-icons";
 import { useNavigation } from "expo-router";
 import React, { useState, useEffect, useLayoutEffect } from "react";
 import {
@@ -11,6 +10,7 @@ import {
   TouchableOpacity,
   Image,
 } from "react-native";
+import axios from "axios"; // axios를 사용하기 위해 import
 
 const SearchScreen = () => {
   const [query, setQuery] = useState(""); // 검색어 상태
@@ -29,22 +29,29 @@ const SearchScreen = () => {
   const fetchProducts = async (searchQuery) => {
     setLoading(true); // 로딩 시작
     try {
-      const response = await fetch(
-        `https://makeup-api.herokuapp.com/api/v1/products.json`
+      // axios로 API 호출
+      const response = await axios.get(
+        "http://192.168.0.34:4000/api/products", // API 엔드포인트 수정 필요
+        {
+          params: {
+            page: 1,
+            pageSize: 950, // 충분히 많은 상품을 가져오기 위해 큰 수로 설정
+          },
+        }
       );
-      const data = await response.json();
-      // 검색어와 가격이 있는 제품으로 필터링하여 결과를 상태로 설정
+      // 검색어와 조건에 맞는 제품으로 필터링하여 결과를 상태로 설정
       setResults(
-        data.filter(
+        response.data.data.filter(
           (item) =>
-            item.name.toLowerCase().startsWith(searchQuery.toLowerCase()) &&
+            item.name.toLowerCase().includes(searchQuery.toLowerCase()) && // 검색어를 포함하는 제품만 필터링
             item.price !== null &&
-            item.price !== "0.0"
+            item.price !== 0 &&
+            item.image_link.startsWith("//") // 이미지 링크가 //로 시작하는 것만 필터링
         )
       );
     } catch (error) {
       console.error("Error fetching data:", error);
-      setResults([]); // 오류 발생 시 결과를 비웁니다
+      setResults([]); // 오류 발생 시 결과를 비움
     } finally {
       setLoading(false); // 로딩 종료
     }
@@ -61,22 +68,29 @@ const SearchScreen = () => {
   }, [query]); // `query`가 변경될 때마다 실행
 
   // 검색 결과 항목 렌더링 함수
-  const renderProduct = ({ item }) => (
-    <TouchableOpacity
-      style={styles.resultItem}
-      onPress={() => {
-        // 검색 결과 클릭 시 상품 상세 페이지로 이동
-        navigation.navigate("ProductScreen", { productId: item.id });
-      }}
-    >
-      <Image source={{ uri: item.image_link }} style={styles.productImage} />
-      <Text style={styles.productBrand}>{item.brand}</Text>
-      <Text style={styles.productName}>{item.name}</Text>
-      <Text style={styles.productPrice}>
-        {`₩${(parseInt(item.price) * 1600).toLocaleString()}`}
-      </Text>
-    </TouchableOpacity>
-  );
+  const renderProduct = ({ item }) => {
+    // 이미지 링크가 "//"로 시작하면 앞에 "https:" 추가
+    const imageUrl = item.image_link.startsWith("//")
+      ? `https:${item.image_link}`
+      : item.image_link;
+
+    return (
+      <TouchableOpacity
+        style={styles.resultItem}
+        onPress={() => {
+          // 검색 결과 클릭 시 상품 상세 페이지로 이동
+          navigation.navigate("ProductScreen", { productId: item.id });
+        }}
+      >
+        <Image source={{ uri: imageUrl }} style={styles.productImage} />
+        <Text style={styles.productBrand}>{item.brand}</Text>
+        <Text style={styles.productName}>{item.name}</Text>
+        <Text style={styles.productPrice}>
+          {`₩${parseInt(item.price).toLocaleString()}`}
+        </Text>
+      </TouchableOpacity>
+    );
+  };
 
   return (
     <View style={styles.container}>

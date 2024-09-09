@@ -1,6 +1,13 @@
 // screens/LoginScreen.tsx
 import React, { useState } from "react";
-import { View, TextInput, Button, StyleSheet } from "react-native";
+import {
+  View,
+  TextInput,
+  Button,
+  StyleSheet,
+  TouchableOpacity,
+  Text,
+} from "react-native";
 import { auth } from "../firebaseConfig";
 import { signInWithEmailAndPassword } from "firebase/auth";
 
@@ -34,8 +41,15 @@ const LoginScreen: React.FC = ({ navigation }: any) => {
         onChangeText={setPassword}
         secureTextEntry
       />
-      <Button title="Login" onPress={handleLogin} />
-      <Button title="Sign Up" onPress={() => navigation.navigate("Signup")} />
+      <TouchableOpacity style={styles.loginButton} onPress={handleLogin}>
+        <Text style={styles.loginButtonText}>로그인</Text>
+      </TouchableOpacity>
+      <TouchableOpacity
+        style={styles.signupButton}
+        onPress={() => navigation.navigate("Signup")}
+      >
+        <Text style={styles.signupButtonText}>회원가입</Text>
+      </TouchableOpacity>
     </View>
   );
 };
@@ -52,6 +66,26 @@ const styles = StyleSheet.create({
     padding: 8,
     marginBottom: 16,
     borderRadius: 4,
+  },
+  loginButton: {
+    backgroundColor: "#000",
+    paddingVertical: 12,
+    borderRadius: 5,
+    alignItems: "center",
+    marginBottom: 12,
+  },
+  loginButtonText: {
+    color: "#fff",
+    fontSize: 16,
+  },
+  signupButton: {
+    paddingVertical: 12,
+    borderRadius: 5,
+    alignItems: "center",
+  },
+  signupButtonText: {
+    color: "#000",
+    fontSize: 16,
   },
 });
 

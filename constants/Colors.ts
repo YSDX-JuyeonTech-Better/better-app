@@ -29,3 +29,8 @@ export const GRAY = {
   DEFAULT: "#E2E2E2",
   DARK: "#5E5E5E",
 };
+
+export const BLACK = {
+  DEFAULT: "#000000",
+  DARK: "#5E5E5E",
+};

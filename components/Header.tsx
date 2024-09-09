@@ -20,7 +20,7 @@ const Header = () => {
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.container}>
         <Image
-          source={require("../assets/images/Bblue.png")}
+          source={require("../assets/images/BetterLogoG.png")}
           style={styles.logo}
           resizeMode="contain"
         />

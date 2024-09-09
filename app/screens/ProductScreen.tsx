@@ -9,12 +9,13 @@ import {
   Modal,
   Animated,
 } from "react-native";
-import { RouteProp, useRoute } from "@react-navigation/native";
+import { RouteProp, useNavigation, useRoute } from "@react-navigation/native";
 import { Ionicons } from "@expo/vector-icons";
 
 import { GRAY } from "@/constants/Colors";
 import { useCart } from "./CartProvider";
-import Hr from "@/components/navigation/Hr";
+import Hr from "@/components/Hr";
+import axios from "axios";
 
 // API 데이터 타입 정의
 type Product = {
@@ -23,12 +24,13 @@ type Product = {
   name: string;
   price: string;
   currency: string;
-  api_featured_image: string;
+  image_link: string;
   description: string;
 };
 
 type RootStackParamList = {
   ProductScreen: { productId: number };
+  BrandScreen: { brandName: string }; // BrandScreen의 파라미터 정의
 };
 
 type ProductScreenRouteProp = RouteProp<RootStackParamList, "ProductScreen">;
@@ -36,6 +38,7 @@ type ProductScreenRouteProp = RouteProp<RootStackParamList, "ProductScreen">;
 const ProductScreen = () => {
   const route = useRoute<ProductScreenRouteProp>();
   const { productId } = route.params;
+  const navigation = useNavigation(); // 네비게이션 객체 가져오기
 
   const { addToCart } = useCart(); // CartContext에서 addToCart 가져오기
 
@@ -47,11 +50,10 @@ const ProductScreen = () => {
   useEffect(() => {
     const fetchProduct = async () => {
       try {
-        const response = await fetch(
-          `https://makeup-api.herokuapp.com/api/v1/products/${productId}.json`
+        const response = await axios.get(
+          `http://192.168.0.34:4000/api/products/${productId}`
         );
-        const data = await response.json();
-        setProduct(data);
+        setProduct(response.data.data);
       } catch (error) {
         console.error("Failed to fetch product:", error);
       }
@@ -79,11 +81,11 @@ const ProductScreen = () => {
         id: product.id.toString(),
         brand: product.brand,
         name: product.name,
-        price: parseInt(product.price) * 1600, // 가격을 한화로 변환
+        price: product.price,
         quantity: 1,
-        image: product.api_featured_image.startsWith("//")
-          ? `https:${product.api_featured_image}`
-          : product.api_featured_image,
+        image: product.image_link.startsWith("//")
+          ? `https:${product.image_link}`
+          : product.image_link,
       });
       setIsModalVisible(true); // 모달 표시
 
@@ -112,20 +114,30 @@ const ProductScreen = () => {
       <ScrollView contentContainerStyle={styles.scrollContainer}>
         <Image
           source={{
-            uri: product.api_featured_image.startsWith("//")
-              ? `https:${product.api_featured_image}`
-              : product.api_featured_image,
+            uri: product.image_link.startsWith("//")
+              ? `https:${product.image_link}`
+              : product.image_link,
           }}
           style={styles.productImage}
         />
         <Hr />
-        <Text style={styles.brandName}>{product.brand}</Text>
+
+        {/* 브랜드 이름을 터치할 수 있게 수정 */}
+        <TouchableOpacity
+          onPress={() =>
+            navigation.navigate("BrandScreen", { brandName: product.brand })
+          } // BrandScreen으로 이동
+        >
+          <Text style={styles.brandName}>{product.brand} &gt;</Text>
+        </TouchableOpacity>
+
         <Text style={styles.productName}>{product.name}</Text>
-        <Text style={styles.price}>{`₩${(
-          parseInt(product.price) * 1600
+        <Text style={styles.price}>{`₩${parseInt(
+          product.price
         ).toLocaleString()}`}</Text>
         <Text style={styles.description}>{product.description}</Text>
       </ScrollView>
+
       <View style={styles.buttonContainer}>
         <TouchableOpacity style={styles.button} onPress={toggleFavorite}>
           <Text style={styles.buttonText}>찜하기&nbsp;</Text>
@@ -232,7 +244,6 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    //   backgroundColor: 'rgba(0, 0, 0, 0.5)', // 모달 배경 반투명, 화면 어두워짐
   },
   modalContent: {
     backgroundColor: "white",

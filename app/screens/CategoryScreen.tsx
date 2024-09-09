@@ -10,6 +10,7 @@ import {
 } from "react-native";
 import Header from "@/components/Header";
 import { useNavigation } from "expo-router";
+import axios from "axios"; // axios로 변경
 
 const productTypes = [
   "Blush",
@@ -25,8 +26,7 @@ const productTypes = [
 ];
 
 const formatPrice = (price) => {
-  const priceNumber = price * 1600;
-  return priceNumber.toLocaleString("ko-KR"); // 한국 원화 형식으로 포맷
+  return parseInt(price).toLocaleString("ko-KR"); // 한국 원화 형식으로 포맷 (1600 곱하지 않음)
 };
 
 const CategoryScreen = () => {
@@ -42,14 +42,20 @@ const CategoryScreen = () => {
   }, [navigation]);
 
   useEffect(() => {
-    // API에서 데이터를 가져오는 함수
+    // API에서 데이터를 가져오는 함수 (axios로 변경)
     const fetchProducts = async () => {
       try {
-        const response = await fetch(
-          "https://makeup-api.herokuapp.com/api/v1/products.json"
-        );
-        const data = await response.json(); // JSON으로 변환
-        setMyData(data); // 가져온 데이터를 상태에 저장
+        const response = await axios.get(
+          "http://192.168.0.34:4000/api/products",
+          {
+            params: {
+              page: 1, // 첫 페이지
+              pageSize: 931, // 충분한 데이터를 많이 가져오기
+            },
+          }
+        ); // axios로 API 호출
+        const item = response.data;
+        setMyData(item.data); // 가져온 데이터를 상태에 저장
       } catch (error) {
         console.error("Failed to fetch products:", error);
       }
@@ -63,22 +69,18 @@ const CategoryScreen = () => {
     const filtered = myData
       .filter((product) => {
         const isCategoryMatch =
-          product.product_type.toLowerCase() ===
+          product.category.toLowerCase() ===
           selectedCategory.toLowerCase().replace(" ", "_");
-        const hasPrice = product.price !== null && product.price !== "0.0"; // 가격이 있는 제품만 포함
-        const hasImage =
-          product.api_featured_image &&
-          product.api_featured_image.trim() !== ""; // api_featured_image를 사용
+        const hasPrice = product.price !== null && product.price !== 0; // 가격이 있는 제품만 포함
+        const hasImage = product.image_link && product.image_link.trim() !== ""; // image_link를 사용
         return isCategoryMatch && hasPrice && hasImage;
       })
       .map((product) => ({
         ...product,
-        image_link: product.api_featured_image.startsWith("//")
-          ? `https:${product.api_featured_image}`
-          : product.api_featured_image,
+        image_link: product.image_link.startsWith("//")
+          ? `https:${product.image_link}`
+          : product.image_link, // 이미지 링크 앞에 https:를 붙여줌
       }));
-
-    // console.log("Filtered Products:", filtered); // 필터된 제품 목록 확인
 
     setFilteredProducts(filtered);
   }, [selectedCategory, myData]);
@@ -93,9 +95,7 @@ const CategoryScreen = () => {
       <Image source={{ uri: item.image_link }} style={styles.productImage} />
       <Text style={styles.productBrand}>{item.brand}</Text>
       <Text style={styles.productName}>{item.name}</Text>
-      <Text style={styles.productPrice}>{`₩${(
-        parseInt(item.price) * 1600
-      ).toLocaleString()}`}</Text>
+      <Text style={styles.productPrice}>{`₩${formatPrice(item.price)}`}</Text>
     </TouchableOpacity>
   );
 
