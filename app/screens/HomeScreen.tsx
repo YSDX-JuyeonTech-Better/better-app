@@ -58,8 +58,9 @@ const HomeScreen: React.FC = () => {
             },
           }
         );
-        console.log(response); // 전체 응답을 확인
-        console.log(response.data); // 응답 데이터 확인
+
+        //  console.log(response); // 전체 응답을 확인
+        //    console.log(response.data); // 응답 데이터 확인
 
         // 조건에 맞게 필터링: 브랜드명, 가격이 있고, 이미지 링크가 "//"로 시작하는 상품만 포함
         const validProducts = response.data.data.filter(
@@ -75,19 +76,19 @@ const HomeScreen: React.FC = () => {
         setProducts(shuffledProducts); // 랜덤으로 추출된 상품을 상태로 저장
       } catch (error) {
         console.error("Failed to fetch products:", error);
-        //
-        // if (error.response) {
-        //   // 서버에서 응답이 왔으나 오류가 발생한 경우
-        //   console.log("response.data : ", error.response.data);
-        //   console.log("response.status : ", error.response.status);
-        //   console.log("response.headers : ", error.response.headers);
-        // } else if (error.request) {
-        //   // 요청이 보내졌으나 응답을 받지 못한 경우
-        //   console.log("error.request : ", error.request);
-        // } else {
-        //   // 요청 자체에서 오류가 발생한 경우
-        //   console.log("Error", error.message);
-        // }
+
+        if (error.response) {
+          // 서버에서 응답이 왔으나 오류가 발생한 경우
+          console.log("response.data : ", error.response.data);
+          console.log("response.status : ", error.response.status);
+          console.log("response.headers : ", error.response.headers);
+        } else if (error.request) {
+          // 요청이 보내졌으나 응답을 받지 못한 경우
+          console.log("error.request : ", error.request);
+        } else {
+          // 요청 자체에서 오류가 발생한 경우
+          console.log("Error", error.message);
+        }
       }
       //
     };

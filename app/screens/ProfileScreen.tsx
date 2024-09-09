@@ -10,15 +10,13 @@ import {
 import { useAuth } from "../context/AuthContext";
 import { getAuth, signOut } from "firebase/auth";
 import { useIsFocused } from "@react-navigation/native";
-import * as ImagePicker from "expo-image-picker";
 import Icon from "react-native-vector-icons/MaterialIcons";
-import { GRAY } from "@/constants/Colors";
 import Hr from "@/components/Hr";
 
 const ProfileScreen: React.FC = ({ navigation }: any) => {
   const { user } = useAuth();
   const [isEditing, setIsEditing] = useState(false);
-  const [profileImage, setProfileImage] = useState<string | null>(null);
+  const [profileImage] = useState<string | null>(null); // 프로필 이미지만 표시
   const [nickname, setNickname] = useState("멜론빵");
   const [phone, setPhone] = useState("010-4690-4953");
   const [email, setEmail] = useState("gkthdud62@naver.com");
@@ -44,31 +42,20 @@ const ProfileScreen: React.FC = ({ navigation }: any) => {
     setIsEditing(!isEditing);
   };
 
-  const handleImagePick = async () => {
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsEditing: true,
-      aspect: [1, 1],
-      quality: 1,
-    });
-
-    if (!result.canceled) {
-      setProfileImage(result.uri);
-    }
-  };
-
   return (
     <View style={styles.container}>
       {user ? (
         <>
-          <Hr />
+          {/* 상단 라벤더색 배경 */}
+          <View style={styles.headerBackground} />
+
           {/* 오른쪽 상단에 고정된 수정 버튼 */}
           <TouchableOpacity style={styles.editIcon} onPress={handleEditToggle}>
             <Icon name="edit" size={24} color="#5E5E5E" />
           </TouchableOpacity>
 
           <View style={styles.profileContainer}>
-            <TouchableOpacity onPress={handleImagePick}>
+            <View style={styles.profileImageContainer}>
               <Image
                 source={
                   profileImage
@@ -77,7 +64,8 @@ const ProfileScreen: React.FC = ({ navigation }: any) => {
                 }
                 style={styles.profileImage}
               />
-            </TouchableOpacity>
+            </View>
+
             {isEditing ? (
               <>
                 <View style={styles.inputContainer}>
@@ -120,36 +108,41 @@ const ProfileScreen: React.FC = ({ navigation }: any) => {
                 </View>
 
                 <TouchableOpacity
-                  style={styles.logoutButton}
+                  style={styles.saveButton}
                   onPress={handleEditToggle}
                 >
-                  <Text style={styles.logoutButtonText}>수정</Text>
+                  <Text style={styles.saveButtonText}>저장</Text>
                 </TouchableOpacity>
               </>
             ) : (
               <>
-                <Text style={[styles.text, styles.leftAlignedText]}>
-                  닉네임: {nickname}
-                </Text>
-                <Text style={[styles.text, styles.leftAlignedText]}>
-                  Tel: {phone}
-                </Text>
-                <Text style={[styles.text, styles.leftAlignedText]}>
-                  이메일: {email}
-                </Text>
-                <Text style={[styles.text, styles.leftAlignedText]}>
-                  주소: {address}
-                </Text>
-                <View style={{ padding: 10 }}></View>
-                <TouchableOpacity
-                  style={styles.logoutButton}
-                  onPress={handleLogout}
-                >
-                  <Text style={styles.logoutButtonText}>로그아웃</Text>
-                </TouchableOpacity>
+                {/* 텍스트 부분을 감싸는 View */}
+                <View style={styles.textContainer}>
+                  <Text style={[styles.text, styles.leftAlignedText]}>
+                    닉네임: {nickname}
+                  </Text>
+                  <Text style={[styles.text, styles.leftAlignedText]}>
+                    Tel: {phone}
+                  </Text>
+                  <Text style={[styles.text, styles.leftAlignedText]}>
+                    이메일: {email}
+                  </Text>
+                  <Text style={[styles.text, styles.leftAlignedText]}>
+                    주소: {address}
+                  </Text>
+                  <View style={{ padding: 10 }}></View>
+                  <TouchableOpacity
+                    style={styles.logoutButton}
+                    onPress={handleLogout}
+                  >
+                    <Text style={styles.logoutButtonText}>로그아웃</Text>
+                  </TouchableOpacity>
+                </View>
               </>
             )}
           </View>
+
+          <Hr />
         </>
       ) : (
         <Text style={styles.text}>Please log in.</Text>
@@ -161,20 +154,38 @@ const ProfileScreen: React.FC = ({ navigation }: any) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: 16,
-    backgroundColor: "#fff",
+  },
+  headerBackground: {
+    backgroundColor: "#E6E6FA", // 라벤더 색상
+    height: "25%", // 상단 30% 영역을 라벤더 색상으로
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+  },
+  editIcon: {
+    position: "absolute",
+    top: 40, // 적절한 위치로 조정
+    right: 20,
+    zIndex: 1, // 다른 요소 위에 표시되도록 설정
   },
   profileContainer: {
     alignItems: "center",
-    marginBottom: 20,
-    width: "80%",
-    alignSelf: "center",
+    marginTop: "20%", // 프로필 이미지를 라벤더 배경 아래로 배치
+  },
+  profileImageContainer: {
+    marginTop: -60, // 라벤더 배경과 겹치도록 프로필 이미지 위치 조정
+    alignItems: "center",
   },
   profileImage: {
     width: 120,
     height: 120,
-    borderRadius: 60,
-    marginBottom: 16,
+    borderRadius: 60, // 프로필 이미지는 둥글게
+    borderWidth: 4,
+    borderColor: "#fff", // 흰색 테두리
+  },
+  textContainer: {
+    marginTop: 40, // 텍스트 부분만 밑으로 내림
   },
   text: {
     fontSize: 18,
@@ -183,10 +194,13 @@ const styles = StyleSheet.create({
   leftAlignedText: {
     textAlign: "left",
     alignSelf: "flex-start",
+    marginLeft: "10%", // 왼쪽 여백 추가
+    marginTop: 10,
   },
   inputContainer: {
-    width: "100%",
-    marginBottom: 10,
+    width: "80%",
+    marginBottom: 15,
+    marginTop: 10,
   },
   input: {
     width: "100%",
@@ -194,11 +208,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "#ccc",
     borderRadius: 5,
-  },
-  editIcon: {
-    position: "absolute",
-    top: 20,
-    right: 20,
   },
   logoutButton: {
     backgroundColor: "#000",
@@ -209,6 +218,17 @@ const styles = StyleSheet.create({
     width: "50%",
   },
   logoutButtonText: {
+    color: "#fff",
+    fontSize: 16,
+  },
+  saveButton: {
+    backgroundColor: "#000",
+    paddingVertical: 12,
+    borderRadius: 5,
+    alignItems: "center",
+    width: "50%",
+  },
+  saveButtonText: {
     color: "#fff",
     fontSize: 16,
   },
