@@ -11,7 +11,6 @@ import {
 import { useAuth } from "../context/AuthContext";
 import { getAuth, signOut } from "firebase/auth";
 import { useIsFocused } from "@react-navigation/native";
-import * as ImagePicker from "expo-image-picker";
 import Icon from "react-native-vector-icons/MaterialIcons";
 
 const ProfileScreen: React.FC = ({ navigation }: any) => {
@@ -74,7 +73,8 @@ const ProfileScreen: React.FC = ({ navigation }: any) => {
                 }
                 style={styles.profileImage}
               />
-            </TouchableOpacity>
+            </View>
+
             {isEditing ? (
               <>
                 {/* 수정 모드에서 표시될 입력 필드들 */}
@@ -105,6 +105,7 @@ const ProfileScreen: React.FC = ({ navigation }: any) => {
                   placeholder="주소"
                 />
                 <TouchableOpacity
+                  style={styles.saveButton}
                   style={styles.saveButton}
                   onPress={handleEditToggle}
                 >
