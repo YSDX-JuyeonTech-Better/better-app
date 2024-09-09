@@ -60,6 +60,19 @@ const ProfileScreen: React.FC = ({ navigation }: any) => {
     }
   };
 
+  const handleImagePick = async () => {
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 1,
+    });
+
+    if (!result.canceled) {
+      setProfileImage(result.uri);
+    }
+  };
+
   return (
     <ScrollView style={styles.container}>
       {user ? (
@@ -106,6 +119,7 @@ const ProfileScreen: React.FC = ({ navigation }: any) => {
                   placeholder="주소"
                 />
                 <TouchableOpacity
+                  style={styles.saveButton}
                   style={styles.saveButton}
                   onPress={handleEditToggle}
                 >
