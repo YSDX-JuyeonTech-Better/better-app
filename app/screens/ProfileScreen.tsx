@@ -11,6 +11,7 @@ import {
 import { useAuth } from "../context/AuthContext";
 import { getAuth, signOut } from "firebase/auth";
 import { useIsFocused } from "@react-navigation/native";
+import * as ImagePicker from "expo-image-picker";
 import Icon from "react-native-vector-icons/MaterialIcons";
 
 const ProfileScreen: React.FC = ({ navigation }: any) => {
@@ -18,8 +19,8 @@ const ProfileScreen: React.FC = ({ navigation }: any) => {
   const [isEditing, setIsEditing] = useState(false); // 수정 모드 상태
   const [profileImage, setProfileImage] = useState<string | null>(null);
   const [nickname, setNickname] = useState("멜론빵");
-  const [phone, setPhone] = useState("010-4690-4953");
-  const [email, setEmail] = useState("gkthdud62@naver.com");
+  const [phone, setPhone] = useState("전화번호");
+  const [email, setEmail] = useState("이메일");
   const [address, setAddress] = useState("대구 동구 효동로3길 9");
   const isFocused = useIsFocused();
 
@@ -73,23 +74,16 @@ const ProfileScreen: React.FC = ({ navigation }: any) => {
                 }
                 style={styles.profileImage}
               />
-            </View>
+            </TouchableOpacity>
 
+            {/* 수정 중일 때는 TextInput으로 표시 */}
             {isEditing ? (
               <>
-                {/* 수정 모드에서 표시될 입력 필드들 */}
                 <TextInput
                   style={styles.input}
                   value={nickname}
                   onChangeText={setNickname}
                   placeholder="닉네임"
-                />
-                <TextInput
-                  style={styles.input}
-                  value={phone}
-                  onChangeText={setPhone}
-                  placeholder="전화번호"
-                  keyboardType="phone-pad"
                 />
                 <TextInput
                   style={styles.input}
@@ -100,12 +94,18 @@ const ProfileScreen: React.FC = ({ navigation }: any) => {
                 />
                 <TextInput
                   style={styles.input}
+                  value={phone}
+                  onChangeText={setPhone}
+                  placeholder="전화번호"
+                  keyboardType="phone-pad"
+                />
+                <TextInput
+                  style={styles.input}
                   value={address}
                   onChangeText={setAddress}
                   placeholder="주소"
                 />
                 <TouchableOpacity
-                  style={styles.saveButton}
                   style={styles.saveButton}
                   onPress={handleEditToggle}
                 >
@@ -114,10 +114,9 @@ const ProfileScreen: React.FC = ({ navigation }: any) => {
               </>
             ) : (
               <>
+                {/* 수정 중이 아닐 때는 텍스트로 표시 */}
                 <Text style={styles.nickname}>{nickname}</Text>
                 <Text style={styles.email}>{email}</Text>
-                <Text style={styles.phone}>{phone}</Text>
-                <Text style={styles.address}>{address}</Text>
               </>
             )}
           </View>
@@ -175,14 +174,6 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   email: {
-    fontSize: 16,
-    color: "#666",
-  },
-  phone: {
-    fontSize: 16,
-    color: "#666",
-  },
-  address: {
     fontSize: 16,
     color: "#666",
   },
