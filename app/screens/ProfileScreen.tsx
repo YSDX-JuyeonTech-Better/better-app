@@ -6,18 +6,17 @@ import {
   Image,
   TextInput,
   TouchableOpacity,
+  ScrollView,
 } from "react-native";
 import { useAuth } from "../context/AuthContext";
 import { getAuth, signOut } from "firebase/auth";
 import { useIsFocused } from "@react-navigation/native";
 import * as ImagePicker from "expo-image-picker";
 import Icon from "react-native-vector-icons/MaterialIcons";
-import { GRAY } from "@/constants/Colors";
-import Hr from "@/components/Hr";
 
 const ProfileScreen: React.FC = ({ navigation }: any) => {
   const { user } = useAuth();
-  const [isEditing, setIsEditing] = useState(false);
+  const [isEditing, setIsEditing] = useState(false); // 수정 모드 상태
   const [profileImage, setProfileImage] = useState<string | null>(null);
   const [nickname, setNickname] = useState("멜론빵");
   const [phone, setPhone] = useState("010-4690-4953");
@@ -40,8 +39,12 @@ const ProfileScreen: React.FC = ({ navigation }: any) => {
     }
   };
 
+  const handleNavigateToOrderHistory = () => {
+    navigation.navigate("PurchaseScreen"); // 주문 내역 화면으로 이동
+  };
+
   const handleEditToggle = () => {
-    setIsEditing(!isEditing);
+    setIsEditing(!isEditing); // 수정 모드 활성화/비활성화
   };
 
   const handleImagePick = async () => {
@@ -58,16 +61,10 @@ const ProfileScreen: React.FC = ({ navigation }: any) => {
   };
 
   return (
-    <View style={styles.container}>
+    <ScrollView style={styles.container}>
       {user ? (
         <>
-          <Hr />
-          {/* 오른쪽 상단에 고정된 수정 버튼 */}
-          <TouchableOpacity style={styles.editIcon} onPress={handleEditToggle}>
-            <Icon name="edit" size={24} color="#5E5E5E" />
-          </TouchableOpacity>
-
-          <View style={styles.profileContainer}>
+          <View style={styles.profileHeader}>
             <TouchableOpacity onPress={handleImagePick}>
               <Image
                 source={
@@ -80,143 +77,158 @@ const ProfileScreen: React.FC = ({ navigation }: any) => {
             </TouchableOpacity>
             {isEditing ? (
               <>
-                <View style={styles.inputContainer}>
-                  <Text style={styles.label}>닉네임</Text>
-                  <TextInput
-                    style={[styles.input]}
-                    value={nickname}
-                    onChangeText={setNickname}
-                    placeholder="닉네임"
-                  />
-                </View>
-                <View style={styles.inputContainer}>
-                  <Text style={styles.label}>전화번호</Text>
-                  <TextInput
-                    style={[styles.input]}
-                    value={phone}
-                    onChangeText={setPhone}
-                    placeholder="전화번호"
-                    keyboardType="phone-pad"
-                  />
-                </View>
-                <View style={styles.inputContainer}>
-                  <Text style={styles.label}>이메일</Text>
-                  <TextInput
-                    style={[styles.input]}
-                    value={email}
-                    onChangeText={setEmail}
-                    placeholder="이메일"
-                    keyboardType="email-address"
-                  />
-                </View>
-                <View style={styles.inputContainer}>
-                  <Text style={styles.label}>주소</Text>
-                  <TextInput
-                    style={[styles.input]}
-                    value={address}
-                    onChangeText={setAddress}
-                    placeholder="주소"
-                  />
-                </View>
-
+                {/* 수정 모드에서 표시될 입력 필드들 */}
+                <TextInput
+                  style={styles.input}
+                  value={nickname}
+                  onChangeText={setNickname}
+                  placeholder="닉네임"
+                />
+                <TextInput
+                  style={styles.input}
+                  value={phone}
+                  onChangeText={setPhone}
+                  placeholder="전화번호"
+                  keyboardType="phone-pad"
+                />
+                <TextInput
+                  style={styles.input}
+                  value={email}
+                  onChangeText={setEmail}
+                  placeholder="이메일"
+                  keyboardType="email-address"
+                />
+                <TextInput
+                  style={styles.input}
+                  value={address}
+                  onChangeText={setAddress}
+                  placeholder="주소"
+                />
                 <TouchableOpacity
-                  style={styles.logoutButton}
+                  style={styles.saveButton}
                   onPress={handleEditToggle}
                 >
-                  <Text style={styles.logoutButtonText}>수정</Text>
+                  <Text style={styles.saveButtonText}>수정 완료</Text>
                 </TouchableOpacity>
               </>
             ) : (
               <>
-                <Text style={[styles.text, styles.leftAlignedText]}>
-                  닉네임: {nickname}
-                </Text>
-                <Text style={[styles.text, styles.leftAlignedText]}>
-                  Tel: {phone}
-                </Text>
-                <Text style={[styles.text, styles.leftAlignedText]}>
-                  이메일: {email}
-                </Text>
-                <Text style={[styles.text, styles.leftAlignedText]}>
-                  주소: {address}
-                </Text>
-                <View style={{ padding: 10 }}></View>
-                <TouchableOpacity
-                  style={styles.logoutButton}
-                  onPress={handleLogout}
-                >
-                  <Text style={styles.logoutButtonText}>로그아웃</Text>
-                </TouchableOpacity>
+                <Text style={styles.nickname}>{nickname}</Text>
+                <Text style={styles.email}>{email}</Text>
+                <Text style={styles.phone}>{phone}</Text>
+                <Text style={styles.address}>{address}</Text>
               </>
             )}
           </View>
+
+          {/* 구매 내역 버튼 */}
+          <TouchableOpacity
+            style={styles.sectionItem}
+            onPress={handleNavigateToOrderHistory}
+          >
+            <Icon name="receipt" size={24} color="black" />
+            <Text style={styles.sectionItemText}>구매 내역</Text>
+          </TouchableOpacity>
+
+          {/* 정보 수정 버튼 */}
+          <TouchableOpacity
+            style={styles.sectionItem}
+            onPress={handleEditToggle}
+          >
+            <Icon name="edit" size={24} color="black" />
+            <Text style={styles.sectionItemText}>정보 수정</Text>
+          </TouchableOpacity>
+
+          {/* 로그아웃 버튼 */}
+          <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
+            <Text style={styles.logoutButtonText}>로그아웃</Text>
+          </TouchableOpacity>
         </>
       ) : (
         <Text style={styles.text}>Please log in.</Text>
       )}
-    </View>
+    </ScrollView>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: 16,
     backgroundColor: "#fff",
   },
-  profileContainer: {
+  profileHeader: {
     alignItems: "center",
-    marginBottom: 20,
-    width: "80%",
-    alignSelf: "center",
+    padding: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: "#eee",
   },
   profileImage: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
-    marginBottom: 16,
-  },
-  text: {
-    fontSize: 18,
+    width: 100,
+    height: 100,
+    borderRadius: 50,
     marginBottom: 8,
   },
-  leftAlignedText: {
-    textAlign: "left",
-    alignSelf: "flex-start",
+  nickname: {
+    fontSize: 20,
+    fontWeight: "bold",
+    marginBottom: 4,
   },
-  inputContainer: {
-    width: "100%",
-    marginBottom: 10,
+  email: {
+    fontSize: 16,
+    color: "#666",
+  },
+  phone: {
+    fontSize: 16,
+    color: "#666",
+  },
+  address: {
+    fontSize: 16,
+    color: "#666",
   },
   input: {
     width: "100%",
     padding: 10,
+    marginVertical: 8,
     borderWidth: 1,
     borderColor: "#ccc",
     borderRadius: 5,
   },
-  editIcon: {
-    position: "absolute",
-    top: 20,
-    right: 20,
+  sectionItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 16,
+    paddingHorizontal: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: "#eee",
+  },
+  sectionItemText: {
+    marginLeft: 12,
+    fontSize: 16,
+  },
+  saveButton: {
+    backgroundColor: "#000",
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    marginTop: 16,
+    alignItems: "center",
+    width: "50%",
+  },
+  saveButtonText: {
+    color: "#fff",
+    fontSize: 16,
   },
   logoutButton: {
     backgroundColor: "#000",
-    paddingVertical: 12,
-    borderRadius: 5,
+    paddingVertical: 16,
+    marginHorizontal: 16,
+    marginTop: 24,
+    borderRadius: 8,
     alignItems: "center",
-    marginBottom: 12,
-    width: "50%",
   },
   logoutButtonText: {
     color: "#fff",
     fontSize: 16,
-  },
-  label: {
-    marginBottom: 6,
-    color: "black",
-    fontSize: 14,
-    fontWeight: "500",
   },
 });
 

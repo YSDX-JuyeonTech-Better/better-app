@@ -43,7 +43,8 @@ const SearchScreen = () => {
       setResults(
         response.data.data.filter(
           (item) =>
-            item.name.toLowerCase().includes(searchQuery.toLowerCase()) && // 검색어를 포함하는 제품만 필터링
+            (item.name?.toLowerCase()?.includes(searchQuery.toLowerCase()) || // 검색어를 포함하는 제품만 필터링, null이 될수도 있기 때문에 ? 포함
+              item.brand?.toLowerCase()?.includes(searchQuery.toLowerCase())) && // 검색어 포함하는 브랜드, null이 될수도 있기 때문에 ? 포함
             item.price !== null &&
             item.price !== 0 &&
             item.image_link.startsWith("//") // 이미지 링크가 //로 시작하는 것만 필터링

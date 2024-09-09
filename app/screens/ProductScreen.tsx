@@ -8,6 +8,8 @@ import {
   TouchableOpacity,
   Modal,
   Animated,
+  StatusBar,
+  Platform,
 } from "react-native";
 import { RouteProp, useNavigation, useRoute } from "@react-navigation/native";
 import { Ionicons } from "@expo/vector-icons";
@@ -177,6 +179,8 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "white",
+    paddingTop: Platform.OS === "android" ? StatusBar.currentHeight : 0, // 안드로이드 상태 표시줄 높이만큼 패딩 추가
+    //  paddingTop: 30,
   },
   scrollContainer: {
     padding: 16,

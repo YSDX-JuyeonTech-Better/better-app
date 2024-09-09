@@ -16,6 +16,7 @@ import CartScreen from "./screens/CartScreen";
 import ProductScreen from "./screens/ProductScreen"; // ProductScreen 추가
 import { CartProvider } from "./screens/CartProvider";
 import BrandScreen from "./screens/BrandScreen";
+import PurchaseScreen from "./screens/PurchaseScreen";
 
 // Create Navigators
 const Tab = createBottomTabNavigator();
@@ -73,6 +74,7 @@ const MainStack = () => (
     {/* ProductScreen을 Stack Navigator에 추가 */}
     <Stack.Screen name="ProductScreen" component={ProductScreen} />
     <Stack.Screen name="BrandScreen" component={BrandScreen} />
+    <Stack.Screen name="PurchaseScreen" component={PurchaseScreen} />
   </Stack.Navigator>
 );
 

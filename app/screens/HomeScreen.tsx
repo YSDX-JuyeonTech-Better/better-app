@@ -58,8 +58,8 @@ const HomeScreen: React.FC = () => {
             },
           }
         );
-        console.log(response); // 전체 응답을 확인
-        console.log(response.data); // 응답 데이터 확인
+        // console.log(response); // 전체 응답을 확인
+        // console.log(response.data); // 응답 데이터 확인
 
         // 조건에 맞게 필터링: 브랜드명, 가격이 있고, 이미지 링크가 "//"로 시작하는 상품만 포함
         const validProducts = response.data.data.filter(
@@ -68,7 +68,7 @@ const HomeScreen: React.FC = () => {
             product.price > 0 && // 가격이 있는 상품만
             product.image_link.startsWith("//") // 이미지 링크가 //로 시작하는 상품만
         );
-        console.log("responsedata : ", response.data);
+        //     console.log("responsedata : ", response.data);
         // 상품을 랜덤하게 섞고, 12개만 추출
         const shuffledProducts = shuffleArray(validProducts).slice(0, 12);
 
@@ -137,7 +137,12 @@ const HomeScreen: React.FC = () => {
 
       {/* 추천 상품 섹션 */}
       <View style={styles.productSection}>
-        <Text style={styles.sectionTitle}>오늘의 추천 상품</Text>
+        <View
+          style={{ justifyContent: "center", flex: 1, alignItems: "center" }}
+        >
+          <Text style={styles.sectionTitle}>오늘의 추천 상품</Text>
+        </View>
+
         <FlatList
           data={products}
           renderItem={renderProduct}
@@ -170,7 +175,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
   },
   sectionTitle: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: "bold",
     marginVertical: 10,
   },
