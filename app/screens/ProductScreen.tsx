@@ -18,6 +18,8 @@ import { GRAY } from "@/constants/Colors";
 import { useCart } from "./CartProvider";
 import Hr from "@/components/Hr";
 import axios from "axios";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import BASE_URL from "../config";
 
 // API 데이터 타입 정의
 type Product = {
@@ -53,7 +55,7 @@ const ProductScreen = () => {
     const fetchProduct = async () => {
       try {
         const response = await axios.get(
-          `http://192.168.0.34:4000/api/products/${productId}`
+          `${BASE_URL}/api/products/${productId}`
         );
         setProduct(response.data.data);
       } catch (error) {
@@ -77,37 +79,66 @@ const ProductScreen = () => {
   };
 
   // 장바구니에 상품 추가하는 함수
-  const handleAddToCart = () => {
+  const handleAddToCart = async () => {
     if (product) {
-      addToCart({
-        id: product.id.toString(),
-        brand: product.brand,
-        name: product.name,
-        price: product.price,
-        quantity: 1,
-        image: product.image_link.startsWith("//")
-          ? `https:${product.image_link}`
-          : product.image_link,
-      });
-      setIsModalVisible(true); // 모달 표시
+      try {
+        const token = await AsyncStorage.getItem("token");
+        const userId = await AsyncStorage.getItem("idx"); // 사용자의 user_idx
 
-      Animated.sequence([
-        Animated.timing(fadeAnim, {
-          toValue: 1,
-          duration: 0,
-          useNativeDriver: true,
-        }),
-        Animated.timing(fadeAnim, {
-          toValue: 1,
-          duration: 2000, // 2초 동안 보이도록 설정
-          useNativeDriver: true,
-        }),
-        Animated.timing(fadeAnim, {
-          toValue: 0,
-          duration: 0, // 3초 후 즉시 사라지도록 설정
-          useNativeDriver: true,
-        }),
-      ]).start(() => setIsModalVisible(false)); // 애니메이션 완료 후 모달 숨김
+        if (!token || !userId) {
+          Alert.alert("로그인이 필요합니다.");
+          return;
+        }
+
+        // 장바구니에 담을 데이터
+        const cartData = {
+          product_id: product.id,
+          quantity: 1, // 기본 수량은 1로 설정
+          price: product.price,
+        };
+
+        console.log("전송할 장바구니 데이터/ProductScreen:", cartData); // 전송 전 데이터를 로그로 확인... console...
+
+        // 서버로 장바구니 정보를 전송
+        const response = await axios.put(`${BASE_URL}/api/carts`, cartData, {
+          headers: {
+            Authorization: `Bearer ${token}`, // 인증을 위한 토큰
+            "Content-Type": "application/json",
+          },
+        });
+
+        console.log("서버 응답:", response); // 서버에서 받은 응답을 로그로 확인
+
+        if (response.status === 201) {
+          // 장바구니에 담았다는 모달을 띄움
+          console.log("장바구니에 담겼습니다!"); // 성공 메시지 출력
+          setIsModalVisible(true);
+
+          // 모달이 2초간 표시되었다가 사라지도록 설정
+          Animated.sequence([
+            Animated.timing(fadeAnim, {
+              toValue: 1,
+              duration: 0,
+              useNativeDriver: true,
+            }),
+            Animated.timing(fadeAnim, {
+              toValue: 1,
+              duration: 2000, // 2초 동안 보이도록 설정
+              useNativeDriver: true,
+            }),
+            Animated.timing(fadeAnim, {
+              toValue: 0,
+              duration: 0, // 3초 후 즉시 사라지도록 설정
+              useNativeDriver: true,
+            }),
+          ]).start(() => setIsModalVisible(false));
+        } else {
+          Alert.alert("장바구니 추가 실패", "다시 시도해주세요.");
+        }
+      } catch (error) {
+        console.error("Cart Add Error: ", error);
+        Alert.alert("오류", "장바구니 추가 중 오류가 발생했습니다.");
+      }
     }
   };
 
@@ -180,7 +211,6 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: "white",
     paddingTop: Platform.OS === "android" ? StatusBar.currentHeight : 0, // 안드로이드 상태 표시줄 높이만큼 패딩 추가
-    //  paddingTop: 30,
   },
   scrollContainer: {
     padding: 16,

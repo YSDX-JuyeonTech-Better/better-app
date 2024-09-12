@@ -12,8 +12,9 @@ import {
 import axios from "axios";
 import Carousel from "react-native-reanimated-carousel";
 import { useNavigation } from "@react-navigation/native";
+import BASE_URL from "../config";
 
-const { width } = Dimensions.get("window");
+const { width, height: screenHeight } = Dimensions.get("window");
 
 // 배너 데이터
 const bannerData = [
@@ -49,15 +50,12 @@ const HomeScreen: React.FC = () => {
   useEffect(() => {
     const fetchProducts = async () => {
       try {
-        const response = await axios.get(
-          "http://192.168.0.34:4000/api/products",
-          {
-            params: {
-              page: 1,
-              pageSize: 950, // 충분히 많은 상품을 가져오기 위해 큰 수로 설정
-            },
-          }
-        );
+        const response = await axios.get(`${BASE_URL}/api/products`, {
+          params: {
+            page: 1,
+            pageSize: 950, // 충분히 많은 상품을 가져오기 위해 큰 수로 설정
+          },
+        });
         // console.log(response); // 전체 응답을 확인
         // console.log(response.data); // 응답 데이터 확인
 
@@ -95,9 +93,15 @@ const HomeScreen: React.FC = () => {
     fetchProducts();
   }, []);
 
-  // 배너 렌더링 함수
+  // 배너 데이터 --반응형배너이미지변경함---
   const renderBanner = ({ item }: { item: { source: any } }) => {
-    return <Image source={item.source} style={styles.bannerImage} />;
+    return (
+      <Image
+        source={item.source}
+        style={styles.bannerImage}
+        resizeMode="cover" // 이미지를 화면에 꽉 차게 설정
+      />
+    );
   };
 
   // 상품 렌더링 함수
@@ -126,7 +130,7 @@ const HomeScreen: React.FC = () => {
         <Carousel
           loop={true}
           width={width}
-          height={200}
+          height={width * 0.56} // 가로 세로 비율을 16:9로 설정 (56%)
           autoPlay={true}
           autoPlayInterval={2000}
           data={bannerData}
@@ -167,9 +171,10 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   bannerImage: {
-    width: width,
-    height: 200,
+    width: "100%",
+    height: "100%", // 부모 컨테이너의 비율에 맞추기
   },
+
   productSection: {
     flex: 1,
     paddingHorizontal: 10,

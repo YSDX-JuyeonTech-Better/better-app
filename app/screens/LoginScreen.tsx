@@ -1,26 +1,62 @@
-// screens/LoginScreen.tsx
 import React, { useState } from "react";
 import {
   View,
   TextInput,
-  Button,
   StyleSheet,
   TouchableOpacity,
   Text,
+  Alert,
 } from "react-native";
-import { auth } from "../firebaseConfig";
-import { signInWithEmailAndPassword } from "firebase/auth";
+import axios from "axios";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import BASE_URL from "../config";
 
 const LoginScreen: React.FC = ({ navigation }: any) => {
-  const [email, setEmail] = useState("");
+  const [id, setId] = useState("");
   const [password, setPassword] = useState("");
 
   const handleLogin = async () => {
     try {
-      await signInWithEmailAndPassword(auth, email, password);
-      navigation.navigate("AppTabs", { screen: "Profile" });
+      // 서버로 로그인 요청을 보냅니다.
+      console.log("Sending login request: ", {
+        user_id: id,
+        user_pw: password,
+      });
+
+      console.log("Client password:", password); // 클라이언트에서 입력한 비밀번호
+
+      const response = await axios.post(
+        `${BASE_URL}/api/users/login`,
+        {
+          user_id: id, // 서버에서 받는 user_id
+          user_pw: password, // 서버에서 받는 user_pw
+        },
+        {
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
+      // token이 있는 경우 로그인 성공으로 간주
+      if (response.data.token) {
+        // AsyncStorage에 토큰 저장
+        console.log(response.data.token); // response.data.token있는지 확인
+        await AsyncStorage.setItem("token", response.data.token); // token값 저장
+        await AsyncStorage.setItem("idx", String(response.data.idx)); // idx 저장
+
+        //
+
+        Alert.alert("로그인 성공", "환영합니다!");
+        navigation.navigate("Profile"); // 프로필 화면으로 이동
+      } else {
+        Alert.alert("로그인 실패", "유효하지 않은 자격 증명입니다.");
+        console.log(response.data.message || "로그인 실패");
+      }
     } catch (error) {
       console.error("Login Error: ", error);
+
+      Alert.alert("오류", "로그인 요청 중 오류가 발생했습니다.");
     }
   };
 
@@ -28,15 +64,15 @@ const LoginScreen: React.FC = ({ navigation }: any) => {
     <View style={styles.container}>
       <TextInput
         style={styles.input}
-        placeholder="Email"
-        value={email}
-        onChangeText={setEmail}
-        keyboardType="email-address"
+        placeholder="아이디"
+        value={id}
+        onChangeText={setId}
+        keyboardType="default"
         autoCapitalize="none"
       />
       <TextInput
         style={styles.input}
-        placeholder="Password"
+        placeholder="비밀번호"
         value={password}
         onChangeText={setPassword}
         secureTextEntry

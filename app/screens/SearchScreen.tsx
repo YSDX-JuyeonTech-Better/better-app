@@ -11,6 +11,7 @@ import {
   Image,
 } from "react-native";
 import axios from "axios"; // axios를 사용하기 위해 import
+import BASE_URL from "../config";
 
 const SearchScreen = () => {
   const [query, setQuery] = useState(""); // 검색어 상태
@@ -30,15 +31,12 @@ const SearchScreen = () => {
     setLoading(true); // 로딩 시작
     try {
       // axios로 API 호출
-      const response = await axios.get(
-        "http://192.168.0.34:4000/api/products", // API 엔드포인트 수정 필요
-        {
-          params: {
-            page: 1,
-            pageSize: 950, // 충분히 많은 상품을 가져오기 위해 큰 수로 설정
-          },
-        }
-      );
+      const response = await axios.get(`${BASE_URL}/api/products`, {
+        params: {
+          page: 1,
+          pageSize: 950, // 충분히 많은 상품을 가져오기 위해 큰 수로 설정
+        },
+      });
       // 검색어와 조건에 맞는 제품으로 필터링하여 결과를 상태로 설정
       setResults(
         response.data.data.filter(

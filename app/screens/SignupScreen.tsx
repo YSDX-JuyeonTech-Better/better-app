@@ -11,12 +11,13 @@ import {
   Platform,
   StatusBar,
   KeyboardAvoidingView,
+  Alert,
 } from "react-native";
 import { useNavigation } from "expo-router";
-import { auth } from "../firebaseConfig";
-import { createUserWithEmailAndPassword } from "firebase/auth";
+import axios from "axios"; // axios를 사용하여 API 호출
 import Header from "@/components/Header";
 import { GRAY } from "@/constants/Colors";
+import BASE_URL from "../config";
 
 const SignUpScreen: React.FC = () => {
   const [id, setId] = useState("");
@@ -51,22 +52,50 @@ const SignUpScreen: React.FC = () => {
     });
   }, [navigation]);
 
+  const handleGenderSelect = (selectedGender: string) => {
+    if (selectedGender === "male") {
+      setGender("M");
+    } else if (selectedGender === "female") {
+      setGender("F");
+    }
+  };
+
   const handleSignup = async () => {
     if (password !== confirmPassword) {
-      console.error("Passwords do not match!");
+      Alert.alert("비밀번호 확인", "비밀번호가 맞지 않습니다.");
       return;
     }
+
+    // 서버로 전송할 회원가입 정보
+    const userData = {
+      id: id,
+      name: name,
+      email: email,
+      password: password,
+      gender: gender, // 'M' 또는 'F'로 전송됨
+      phone_num: phoneNum,
+      address: address,
+    };
+
+    console.log("Sending userData: ", userData); // 콘솔에 출력
+
     try {
-      await createUserWithEmailAndPassword(auth, email, password);
+      // axios를 사용하여 회원가입 요청을 서버로 보냄
+      const response = await axios.post(`${BASE_URL}/api/users`, userData);
+      console.log("Response: ", response.data);
+
+      // 요청 성공 시 처리
+      Alert.alert("가입 완료", "회원가입이 완료되었습니다!");
       navigation.navigate("Profile");
     } catch (error) {
+      // 요청 실패 시 에러 처리
+      Alert.alert("가입 실패", "회원가입에 실패하였습니다.");
       console.error("Signup Error: ", error);
     }
   };
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      {/* Android에서는 StatusBar 높이만큼 padding을 추가합니다. */}
       {Platform.OS === "android" && (
         <StatusBar backgroundColor="#fff" barStyle="dark-content" />
       )}
@@ -166,16 +195,18 @@ const SignUpScreen: React.FC = () => {
 
           <Text style={styles.label}>성별 선택</Text>
           <View style={styles.genderContainer}>
-            <TouchableWithoutFeedback onPress={() => setGender("male")}>
+            <TouchableWithoutFeedback
+              onPress={() => handleGenderSelect("male")}
+            >
               <View
                 style={[
                   styles.genderOption,
-                  gender === "male" && styles.genderOptionSelected,
+                  gender === "M" && styles.genderOptionSelected,
                 ]}
               >
                 <Text
                   style={
-                    gender === "male"
+                    gender === "M"
                       ? styles.genderSelected
                       : styles.genderUnselected
                   }
@@ -184,16 +215,18 @@ const SignUpScreen: React.FC = () => {
                 </Text>
               </View>
             </TouchableWithoutFeedback>
-            <TouchableWithoutFeedback onPress={() => setGender("female")}>
+            <TouchableWithoutFeedback
+              onPress={() => handleGenderSelect("female")}
+            >
               <View
                 style={[
                   styles.genderOption,
-                  gender === "female" && styles.genderOptionSelected,
+                  gender === "F" && styles.genderOptionSelected,
                 ]}
               >
                 <Text
                   style={
-                    gender === "female"
+                    gender === "F"
                       ? styles.genderSelected
                       : styles.genderUnselected
                   }
@@ -260,14 +293,14 @@ const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
     backgroundColor: "#fff",
-    paddingTop: Platform.OS === "android" ? StatusBar.currentHeight : 0, // Android 상단 padding 적용
+    paddingTop: Platform.OS === "android" ? StatusBar.currentHeight : 0,
   },
   container: {
     flex: 1,
   },
   scrollViewContent: {
     padding: 20,
-    paddingBottom: 150, // 버튼 영역 확보를 위해 여유 공간 추가
+    paddingBottom: 150,
   },
   label: {
     marginBottom: 6,

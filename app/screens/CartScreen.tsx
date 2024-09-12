@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   View,
   Text,
@@ -8,23 +8,175 @@ import {
   StyleSheet,
   Alert,
 } from "react-native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import axios from "axios";
+import BASE_URL from "../config";
 import { useCart } from "./CartProvider";
 
 const CartScreen = () => {
-  const { cartItems, increaseQuantity, decreaseQuantity, removeItem } =
-    useCart();
+  const {
+    cartItems,
+    increaseQuantity,
+    decreaseQuantity,
+    removeItem,
+    clearCart,
+  } = useCart();
+  const [loading, setLoading] = useState(false);
+  const [detailedCartItems, setDetailedCartItems] = useState([]); // 장바구니 아이템
+
+  // 장바구니에서 각 상품의 상세 정보를 가져오는 함수
+  const fetchProductDetails = async (cartItems) => {
+    const detailedItems = await Promise.all(
+      cartItems.map(async (item) => {
+        try {
+          const productResponse = await axios.get(
+            `${BASE_URL}/api/products/${item.product_id}`
+          );
+          console.log("CartScreen의 Cart Item들:", item);
+          console.log("CartScreen의 Cart Item cart_items_id:", item.id); // cart_items의 id 값 확인
+
+          return {
+            cart_items_id: item.id, // cart_items 테이블의 id 값
+            product_id: item.product_id, // product_id는 별도로 저장
+            ...productResponse.data.data, // 상품 상세 정보를 cart item에 추가
+            quantity: item.quantity, // 장바구니에 저장된 수량 추가
+          };
+        } catch (error) {
+          console.error(
+            `Failed to fetch product details for product_id: ${item.product_id}`,
+            error
+          );
+          return item; // 상품 정보를 가져오지 못한 경우 원래 아이템 그대로 반환
+        }
+      })
+    );
+    setDetailedCartItems(detailedItems);
+  };
+
+  // 장바구니 항목을 가져오는 함수
+  const fetchCartItems = async () => {
+    setLoading(true);
+    try {
+      const token = await AsyncStorage.getItem("token");
+      const response = await axios.get(`${BASE_URL}/api/carts`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      });
+      if (response.status === 200 && response.data.success) {
+        console.log("장바구니 데이터 로드 성공:", response.data);
+        await fetchProductDetails(response.data.cartItems); // 상세 정보 가져오기
+      }
+    } catch (error) {
+      console.error(
+        "장바구니 데이터를 불러오는 중 오류가 발생했습니다:",
+        error
+      );
+    }
+    setLoading(false);
+  };
+
+  useEffect(() => {
+    fetchCartItems(); // 화면이 로드될 때 장바구니 데이터를 서버에서 가져옴
+  }, []);
 
   const calculateTotalPrice = () => {
-    return cartItems.reduce(
-      (total, item) => total + item.price * item.quantity,
+    return detailedCartItems.reduce(
+      (total, item) => total + (item.price || 0) * item.quantity,
       0
     );
   };
 
   const calculateTotalQuantity = () => {
-    return cartItems.reduce((total, item) => total + item.quantity, 0);
+    return detailedCartItems.reduce((total, item) => total + item.quantity, 0);
   };
 
+  // 구매 완료 후 장바구니를 비우는 함수
+  const clearCartAfterPurchase = async () => {
+    try {
+      const token = await AsyncStorage.getItem("token");
+
+      if (detailedCartItems.length > 0) {
+        for (const item of detailedCartItems) {
+          const cartId = item.cart_id; // cart_id는 정상적으로 받아옴
+          const cartItemsId = item.cart_items_id; // cart_items 테이블의 id 값 사용
+
+          console.log("CartScreen의 cart_items_id 확인 : ", cartItemsId);
+
+          console.log("삭제할 Cart ID:", cartId); // cart_id 확인
+          console.log("삭제할 Cart Items ID:", cartItemsId); // cart_items의 id 확인
+
+          // DELETE 요청에 cartItemsId를 쿼리 파라미터로 포함시켜서 서버로 전송
+          const url = `${BASE_URL}/api/carts/${cartItemsId}`;
+          console.log("삭제 요청 URL:", url);
+
+          const response = await axios.delete(url, {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          });
+
+          console.log("삭제 요청 응답 상태 코드:", response.status);
+        }
+
+        clearCart();
+        setDetailedCartItems([]);
+      }
+    } catch (error) {
+      console.error("장바구니 비우기 오류:", error);
+    }
+  };
+
+  // 구매 버튼을 눌렀을 때 처리 함수
+  const handlePurchase = async () => {
+    try {
+      const token = await AsyncStorage.getItem("token");
+      const userId = await AsyncStorage.getItem("idx");
+
+      if (!token || !userId) {
+        Alert.alert("로그인이 필요합니다.");
+        return;
+      }
+
+      const orderData = {
+        user_idx: parseInt(userId), // 유저 ID
+        total_amount: calculateTotalQuantity(), // 총 상품 개수
+        products: detailedCartItems.map((item) => ({
+          product_id: item.product_id,
+          quantity: item.quantity,
+          price: item.price,
+          total_price: item.price * item.quantity,
+        })),
+      };
+
+      // 주문 데이터를 서버로 전송
+      const response = await axios.put(`${BASE_URL}/api/orders`, orderData, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      });
+
+      if (response.status === 201) {
+        Alert.alert("구매 완료", "주문이 완료되었습니다.", [
+          {
+            text: "확인",
+            onPress: () => {
+              clearCartAfterPurchase(); // 주문 후 장바구니 비우기
+            },
+          },
+        ]);
+      } else {
+        Alert.alert("주문 실패", "다시 시도해주세요.");
+      }
+    } catch (error) {
+      console.error("주문 처리 중 오류 발생:", error);
+      Alert.alert("오류", "주문 처리 중 오류가 발생했습니다.");
+    }
+  };
+
+  // 수량 감소 또는 항목 삭제 처리 함수
   const handleDecreaseQuantity = (item) => {
     if (item.quantity === 1) {
       Alert.alert("삭제 확인", "장바구니에서 해당 상품을 삭제하시겠습니까?", [
@@ -35,47 +187,58 @@ const CartScreen = () => {
         },
         {
           text: "삭제",
-          onPress: () => removeItem(item.id),
+          onPress: () => removeItem(item.cart_items_id), // cart_items_id로 삭제
           style: "destructive",
         },
       ]);
     } else {
-      decreaseQuantity(item.id);
+      decreaseQuantity(item.cart_items_id); // cart_items_id로 수량 감소
     }
   };
 
-  const renderItem = ({ item }) => (
-    <View style={styles.cartItem}>
-      <Image source={{ uri: item.image }} style={styles.productImage} />
-      <View style={styles.productDetails}>
-        <Text style={styles.brand}>{item.brand}</Text>
-        <Text style={styles.name}>{item.name}</Text>
-        <View style={styles.quantityContainer}>
-          <TouchableOpacity onPress={() => handleDecreaseQuantity(item)}>
-            <Text style={styles.quantityButton}>-</Text>
-          </TouchableOpacity>
-          <Text style={styles.quantity}>{item.quantity}</Text>
-          <TouchableOpacity onPress={() => increaseQuantity(item.id)}>
-            <Text style={styles.quantityButton}>+</Text>
-          </TouchableOpacity>
+  // 각 아이템을 렌더링하는 함수
+  const renderItem = ({ item }) => {
+    const imageUrl = item.image_link.startsWith("//")
+      ? `https:${item.image_link}`
+      : item.image_link;
+
+    return (
+      <View style={styles.cartItem}>
+        <Image source={{ uri: imageUrl }} style={styles.productImage} />
+        <View style={styles.productDetails}>
+          <Text style={styles.brand}>{item.brand}</Text>
+          <Text style={styles.name}>{item.name}</Text>
+          <View style={styles.quantityContainer}>
+            <TouchableOpacity onPress={() => handleDecreaseQuantity(item)}>
+              <Text style={styles.quantityButton}>-</Text>
+            </TouchableOpacity>
+            <Text style={styles.quantity}>{item.quantity}</Text>
+            <TouchableOpacity
+              onPress={() => increaseQuantity(item.cart_items_id)}
+            >
+              <Text style={styles.quantityButton}>+</Text>
+            </TouchableOpacity>
+          </View>
         </View>
+        <Text style={styles.price}>
+          {(item.price * item.quantity).toLocaleString("ko-KR")}원
+        </Text>
       </View>
-      <Text style={styles.price}>
-        {(item.price * item.quantity).toLocaleString("ko-KR")}원
-      </Text>
-    </View>
-  );
+    );
+  };
 
   return (
     <View style={styles.container}>
-      {cartItems.length === 0 ? (
+      {loading ? (
+        <Text>로딩 중...</Text>
+      ) : detailedCartItems.length === 0 ? (
         <Text style={styles.emptyText}>장바구니에 담긴 상품이 없습니다.</Text>
       ) : (
         <>
           <FlatList
-            data={cartItems}
+            data={detailedCartItems}
             renderItem={renderItem}
-            keyExtractor={(item) => item.id.toString()}
+            keyExtractor={(item) => item.product_id.toString()} // product_id를 key로 사용
           />
           <View style={styles.totalContainer}>
             <Text style={styles.totalText}>
@@ -85,7 +248,10 @@ const CartScreen = () => {
               {calculateTotalPrice().toLocaleString("ko-KR")}원
             </Text>
           </View>
-          <TouchableOpacity style={styles.purchaseButton}>
+          <TouchableOpacity
+            style={styles.purchaseButton}
+            onPress={handlePurchase}
+          >
             <Text style={styles.purchaseButtonText}>구매하기</Text>
           </TouchableOpacity>
         </>

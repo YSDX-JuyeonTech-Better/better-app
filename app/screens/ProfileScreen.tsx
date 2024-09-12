@@ -8,75 +8,134 @@ import {
   TouchableOpacity,
   ScrollView,
 } from "react-native";
-import { useAuth } from "../context/AuthContext";
-import { getAuth, signOut } from "firebase/auth";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useIsFocused } from "@react-navigation/native";
 import * as ImagePicker from "expo-image-picker";
+import axios from "axios";
 import Icon from "react-native-vector-icons/MaterialIcons";
+import BASE_URL from "../config";
 
 const ProfileScreen: React.FC = ({ navigation }: any) => {
-  const { user } = useAuth();
-  const [isEditing, setIsEditing] = useState(false); // 수정 모드 상태
   const [profileImage, setProfileImage] = useState<string | null>(null);
-  const [nickname, setNickname] = useState("멜론빵");
-  const [phone, setPhone] = useState("전화번호");
-  const [email, setEmail] = useState("이메일");
-  const [address, setAddress] = useState("대구 동구 효동로3길 9");
+  const [name, setName] = useState(""); // API에서 가져온 유저 이름
+  const [email, setEmail] = useState(""); // API에서 가져온 유저 이메일
+  const [password, setPassword] = useState(""); // API에서 가져온 비밀번호
+  const [gender, setGender] = useState(""); // API에서 가져온 성별
+  const [phoneNum, setPhoneNum] = useState(""); // API에서 가져온 전화번호
+  const [address, setAddress] = useState(""); // API에서 가져온 주소
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isEditing, setIsEditing] = useState(false); // 수정 모드 상태
   const isFocused = useIsFocused();
 
-  useEffect(() => {
-    if (isFocused && !user) {
-      navigation.navigate("Login");
+  // API를 통해 유저 정보를 가져오는 함수
+  const fetchUserProfile = async (idx: string) => {
+    try {
+      console.log(`Fetching user profile with idx: ${idx}`);
+      const response = await axios.get(`${BASE_URL}/api/users/${idx}`);
+
+      console.log("ProfileScreen API Response:", response);
+      const userData = response.data.data;
+      console.log("ProfileScreen userData :", userData);
+      setName(userData.name);
+      setEmail(userData.email);
+      setPassword(userData.password);
+      setGender(userData.gender);
+      setPhoneNum(userData.phone_num);
+      setAddress(userData.address);
+    } catch (error) {
+      console.error("Failed to fetch user data:", error);
     }
-  }, [isFocused, user, navigation]);
+  };
+
+  // 로그인 상태를 확인하고, 유저 정보를 API로부터 가져오는 useEffect
+  useEffect(() => {
+    const checkAuthAndFetchData = async () => {
+      const token = await AsyncStorage.getItem("token");
+      if (token) {
+        setIsAuthenticated(true);
+        const idx = await AsyncStorage.getItem("idx");
+
+        console.log("Profile Screen Token:", token);
+        console.log("Profile Screen User idx:", idx);
+
+        if (idx) {
+          fetchUserProfile(idx);
+        }
+      } else {
+        navigation.navigate("Login");
+      }
+    };
+
+    if (isFocused) {
+      checkAuthAndFetchData();
+    }
+  }, [isFocused, navigation]);
 
   const handleLogout = async () => {
     try {
-      await signOut(getAuth());
+      await AsyncStorage.removeItem("token");
+      await AsyncStorage.removeItem("idx");
       navigation.navigate("Login");
     } catch (error) {
-      console.error(error);
+      console.error("Logout Error: ", error);
     }
+  };
+
+  const handleImagePick = async () => {
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 1,
+    });
+
+    if (!result.canceled) {
+      setProfileImage(result.uri);
+    }
+  };
+
+  const handleEditToggle = async () => {
+    if (isEditing) {
+      try {
+        const token = await AsyncStorage.getItem("token");
+        const idx = await AsyncStorage.getItem("idx");
+
+        const response = await axios.put(
+          `${BASE_URL}/api/users/${idx}`,
+          {
+            name,
+            email,
+            password,
+            gender,
+            phone_num: phoneNum,
+            address,
+          },
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        );
+
+        console.log("User data updated:", response.data);
+      } catch (error) {
+        console.error("Failed to update user data:", error);
+      }
+    }
+
+    setIsEditing(!isEditing);
   };
 
   const handleNavigateToOrderHistory = () => {
-    navigation.navigate("PurchaseScreen"); // 주문 내역 화면으로 이동
-  };
-
-  const handleEditToggle = () => {
-    setIsEditing(!isEditing); // 수정 모드 활성화/비활성화
-  };
-
-  const handleImagePick = async () => {
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsEditing: true,
-      aspect: [1, 1],
-      quality: 1,
-    });
-
-    if (!result.canceled) {
-      setProfileImage(result.uri);
-    }
-  };
-
-  const handleImagePick = async () => {
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsEditing: true,
-      aspect: [1, 1],
-      quality: 1,
-    });
-
-    if (!result.canceled) {
-      setProfileImage(result.uri);
-    }
+    navigation.navigate("PurchaseScreen");
   };
 
   return (
     <ScrollView style={styles.container}>
-      {user ? (
+      {isAuthenticated ? (
         <>
+          <View style={styles.separator} />
+
           <View style={styles.profileHeader}>
             <TouchableOpacity onPress={handleImagePick}>
               <Image
@@ -89,15 +148,16 @@ const ProfileScreen: React.FC = ({ navigation }: any) => {
               />
             </TouchableOpacity>
 
-            {/* 수정 중일 때는 TextInput으로 표시 */}
             {isEditing ? (
               <>
+                <Text style={styles.label}>이름</Text>
                 <TextInput
                   style={styles.input}
-                  value={nickname}
-                  onChangeText={setNickname}
-                  placeholder="닉네임"
+                  value={name}
+                  onChangeText={setName}
+                  placeholder="이름"
                 />
+                <Text style={styles.label}>이메일</Text>
                 <TextInput
                   style={styles.input}
                   value={email}
@@ -105,13 +165,30 @@ const ProfileScreen: React.FC = ({ navigation }: any) => {
                   placeholder="이메일"
                   keyboardType="email-address"
                 />
+                <Text style={styles.label}>비밀번호</Text>
                 <TextInput
                   style={styles.input}
-                  value={phone}
-                  onChangeText={setPhone}
+                  value={password}
+                  onChangeText={setPassword}
+                  placeholder="비밀번호"
+                  secureTextEntry
+                />
+                <Text style={styles.label}>성별</Text>
+                <TextInput
+                  style={styles.input}
+                  value={gender}
+                  onChangeText={setGender}
+                  placeholder="성별"
+                />
+                <Text style={styles.label}>전화번호</Text>
+                <TextInput
+                  style={styles.input}
+                  value={phoneNum}
+                  onChangeText={setPhoneNum}
                   placeholder="전화번호"
                   keyboardType="phone-pad"
                 />
+                <Text style={styles.label}>주소</Text>
                 <TextInput
                   style={styles.input}
                   value={address}
@@ -120,7 +197,6 @@ const ProfileScreen: React.FC = ({ navigation }: any) => {
                 />
                 <TouchableOpacity
                   style={styles.saveButton}
-                  style={styles.saveButton}
                   onPress={handleEditToggle}
                 >
                   <Text style={styles.saveButtonText}>수정 완료</Text>
@@ -128,14 +204,12 @@ const ProfileScreen: React.FC = ({ navigation }: any) => {
               </>
             ) : (
               <>
-                {/* 수정 중이 아닐 때는 텍스트로 표시 */}
-                <Text style={styles.nickname}>{nickname}</Text>
+                <Text style={styles.nickname}>{name}</Text>
                 <Text style={styles.email}>{email}</Text>
               </>
             )}
           </View>
 
-          {/* 구매 내역 버튼 */}
           <TouchableOpacity
             style={styles.sectionItem}
             onPress={handleNavigateToOrderHistory}
@@ -144,7 +218,6 @@ const ProfileScreen: React.FC = ({ navigation }: any) => {
             <Text style={styles.sectionItemText}>구매 내역</Text>
           </TouchableOpacity>
 
-          {/* 정보 수정 버튼 */}
           <TouchableOpacity
             style={styles.sectionItem}
             onPress={handleEditToggle}
@@ -153,7 +226,6 @@ const ProfileScreen: React.FC = ({ navigation }: any) => {
             <Text style={styles.sectionItemText}>정보 수정</Text>
           </TouchableOpacity>
 
-          {/* 로그아웃 버튼 */}
           <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
             <Text style={styles.logoutButtonText}>로그아웃</Text>
           </TouchableOpacity>
@@ -170,11 +242,15 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: "#fff",
   },
+  separator: {
+    height: 1,
+    backgroundColor: "#d3d3d3",
+    marginVertical: 10,
+  },
   profileHeader: {
     alignItems: "center",
     padding: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: "#eee",
+    marginTop: 20,
   },
   profileImage: {
     width: 100,
@@ -190,6 +266,13 @@ const styles = StyleSheet.create({
   email: {
     fontSize: 16,
     color: "#666",
+  },
+  label: {
+    alignSelf: "flex-start",
+    marginLeft: 16,
+    marginTop: 8,
+    fontSize: 14,
+    color: "#333",
   },
   input: {
     width: "100%",
@@ -235,6 +318,11 @@ const styles = StyleSheet.create({
   logoutButtonText: {
     color: "#fff",
     fontSize: 16,
+  },
+  text: {
+    fontSize: 18,
+    textAlign: "center",
+    marginVertical: 20,
   },
 });
 

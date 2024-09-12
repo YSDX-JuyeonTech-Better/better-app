@@ -1,6 +1,5 @@
 import React, { createContext, useContext, useState, ReactNode } from "react";
 import { Text } from "react-native";
-// 장바구니 상태관리
 
 // Cart Item Interface
 interface CartItem {
@@ -18,7 +17,8 @@ interface CartContextType {
   addToCart: (item: CartItem) => void;
   increaseQuantity: (id: string) => void;
   decreaseQuantity: (id: string) => void;
-  removeItem: (id: number) => void; // removeItem 함수 추가
+  removeItem: (id: string) => void; // id 타입을 string으로 변경
+  clearCart: () => void; // clearCart 함수 추가
 }
 
 // Create Context
@@ -61,9 +61,14 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     );
   };
 
-  // removeItem 함수 구현
-  const removeItem = (id: number) => {
-    setCartItems(cartItems.filter((item) => item.id !== id));
+  // removeItem 함수 구현 (id 타입을 string으로 변경)
+  const removeItem = (id: string) => {
+    setCartItems((prevItems) => prevItems.filter((item) => item.id !== id));
+  };
+
+  // clearCart 함수 구현
+  const clearCart = () => {
+    setCartItems([]);
   };
 
   return (
@@ -74,6 +79,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
         increaseQuantity,
         decreaseQuantity,
         removeItem,
+        clearCart, // clearCart를 제공
       }}
     >
       {children}
@@ -85,8 +91,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
 export const useCart = () => {
   const context = useContext(CartContext);
   if (!context) {
-    <Text>장바구니에 담긴 물건이 없습니다.</Text>;
-    //  throw new Error('useCart must be used within a CartProvider');
+    throw new Error("useCart must be used within a CartProvider");
   }
   return context;
 };

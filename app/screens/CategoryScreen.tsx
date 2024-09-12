@@ -11,6 +11,7 @@ import {
 import Header from "@/components/Header";
 import { useNavigation } from "expo-router";
 import axios from "axios"; // axios로 변경
+import BASE_URL from "../config";
 
 const productTypes = [
   "Blush",
@@ -45,15 +46,12 @@ const CategoryScreen = () => {
     // API에서 데이터를 가져오는 함수 (axios로 변경)
     const fetchProducts = async () => {
       try {
-        const response = await axios.get(
-          "http://192.168.0.34:4000/api/products",
-          {
-            params: {
-              page: 1, // 첫 페이지
-              pageSize: 931, // 충분한 데이터를 많이 가져오기
-            },
-          }
-        ); // axios로 API 호출
+        const response = await axios.get(`${BASE_URL}/api/products`, {
+          params: {
+            page: 1, // 첫 페이지
+            pageSize: 931, // 충분한 데이터를 많이 가져오기
+          },
+        }); // axios로 API 호출
         const item = response.data;
         setMyData(item.data); // 가져온 데이터를 상태에 저장
       } catch (error) {
