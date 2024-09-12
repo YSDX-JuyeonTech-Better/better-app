@@ -1,4 +1,5 @@
-import React, { useEffect, useState } from "react";
+import { useFocusEffect } from "@react-navigation/native";
+import React, { useEffect, useState, useCallback } from "react";
 import {
   View,
   Text,
@@ -77,9 +78,12 @@ const CartScreen = () => {
     setLoading(false);
   };
 
-  useEffect(() => {
-    fetchCartItems(); // 화면이 로드될 때 장바구니 데이터를 서버에서 가져옴
-  }, []);
+  // useFocusEffect로 화면이 포커스될 때마다 장바구니 항목을 다시 가져옴
+  useFocusEffect(
+    useCallback(() => {
+      fetchCartItems(); // 화면이 포커스될 때마다 장바구니 데이터를 새로고침
+    }, [])
+  );
 
   const calculateTotalPrice = () => {
     return detailedCartItems.reduce(
@@ -99,13 +103,9 @@ const CartScreen = () => {
 
       if (detailedCartItems.length > 0) {
         for (const item of detailedCartItems) {
-          const cartId = item.cart_id; // cart_id는 정상적으로 받아옴
           const cartItemsId = item.cart_items_id; // cart_items 테이블의 id 값 사용
 
           console.log("CartScreen의 cart_items_id 확인 : ", cartItemsId);
-
-          console.log("삭제할 Cart ID:", cartId); // cart_id 확인
-          console.log("삭제할 Cart Items ID:", cartItemsId); // cart_items의 id 확인
 
           // DELETE 요청에 cartItemsId를 쿼리 파라미터로 포함시켜서 서버로 전송
           const url = `${BASE_URL}/api/carts/${cartItemsId}`;
@@ -120,80 +120,156 @@ const CartScreen = () => {
           console.log("삭제 요청 응답 상태 코드:", response.status);
         }
 
-        clearCart();
-        setDetailedCartItems([]);
+        clearCart(); // 장바구니 비우기
+        setDetailedCartItems([]); // UI에서 장바구니 항목 제거
       }
     } catch (error) {
       console.error("장바구니 비우기 오류:", error);
+      Alert.alert("오류", "장바구니 비우기 중 오류가 발생했습니다.");
     }
   };
 
-  // 구매 버튼을 눌렀을 때 처리 함수
-  const handlePurchase = async () => {
+  // 상품을 삭제하는 함수
+  const handleRemoveItem = async (item) => {
     try {
       const token = await AsyncStorage.getItem("token");
-      const userId = await AsyncStorage.getItem("idx");
+      const cartItemsId = item.cart_items_id;
 
-      if (!token || !userId) {
-        Alert.alert("로그인이 필요합니다.");
-        return;
-      }
+      console.log("삭제할 Cart Items ID:", cartItemsId);
 
-      const orderData = {
-        user_idx: parseInt(userId), // 유저 ID
-        total_amount: calculateTotalQuantity(), // 총 상품 개수
-        products: detailedCartItems.map((item) => ({
-          product_id: item.product_id,
-          quantity: item.quantity,
-          price: item.price,
-          total_price: item.price * item.quantity,
-        })),
-      };
-
-      // 주문 데이터를 서버로 전송
-      const response = await axios.put(`${BASE_URL}/api/orders`, orderData, {
+      // DELETE 요청 전송
+      const url = `${BASE_URL}/api/carts/${cartItemsId}`;
+      const response = await axios.delete(url, {
         headers: {
           Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
         },
       });
 
-      if (response.status === 201) {
-        Alert.alert("구매 완료", "주문이 완료되었습니다.", [
-          {
-            text: "확인",
-            onPress: () => {
-              clearCartAfterPurchase(); // 주문 후 장바구니 비우기
-            },
-          },
-        ]);
-      } else {
-        Alert.alert("주문 실패", "다시 시도해주세요.");
-      }
+      console.log("삭제 요청 응답 상태 코드:", response.status);
+
+      // UI 업데이트: 해당 항목을 목록에서 제거
+      const updatedItems = detailedCartItems.filter(
+        (cartItem) => cartItem.cart_items_id !== cartItemsId
+      );
+      setDetailedCartItems(updatedItems);
     } catch (error) {
-      console.error("주문 처리 중 오류 발생:", error);
-      Alert.alert("오류", "주문 처리 중 오류가 발생했습니다.");
+      console.error("상품 삭제 중 오류:", error);
+      Alert.alert("오류", "상품 삭제 중 오류가 발생했습니다.");
     }
   };
 
-  // 수량 감소 또는 항목 삭제 처리 함수
+  // 수량 감소 처리 함수
   const handleDecreaseQuantity = (item) => {
     if (item.quantity === 1) {
       Alert.alert("삭제 확인", "장바구니에서 해당 상품을 삭제하시겠습니까?", [
         {
           text: "취소",
-          onPress: () => console.log("삭제 취소"),
           style: "cancel",
         },
         {
           text: "삭제",
-          onPress: () => removeItem(item.cart_items_id), // cart_items_id로 삭제
+          onPress: () => handleRemoveItem(item), // cart_items_id로 삭제
           style: "destructive",
         },
       ]);
     } else {
       decreaseQuantity(item.cart_items_id); // cart_items_id로 수량 감소
     }
+  };
+
+  // 수량 증가 함수
+  const handleIncreaseQuantity = async (item) => {
+    try {
+      const token = await AsyncStorage.getItem("token");
+      const newQuantity = item.quantity + 1;
+
+      // 수량 증가 요청
+      await axios.put(
+        `${BASE_URL}/api/carts/${item.cart_items_id}`, // 개별 cart item에 대해 PUT 요청
+        {
+          quantity: newQuantity,
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      // 화면 업데이트
+      const updatedItems = detailedCartItems.map((cartItem) =>
+        cartItem.cart_items_id === item.cart_items_id
+          ? { ...cartItem, quantity: newQuantity }
+          : cartItem
+      );
+      setDetailedCartItems(updatedItems);
+    } catch (error) {
+      console.error("수량 증가 중 오류:", error);
+      Alert.alert("수량 증가 중 오류가 발생했습니다.");
+    }
+  };
+
+  // 구매 버튼을 눌렀을 때 처리 함수
+  const handlePurchase = async () => {
+    Alert.alert("구매 확인", "정말로 구매하시겠습니까?", [
+      {
+        text: "취소",
+        style: "cancel",
+      },
+      {
+        text: "예",
+        onPress: async () => {
+          try {
+            const token = await AsyncStorage.getItem("token");
+            const userId = await AsyncStorage.getItem("idx");
+
+            if (!token || !userId) {
+              Alert.alert("로그인이 필요합니다.");
+              return;
+            }
+
+            const orderData = {
+              user_idx: parseInt(userId), // 유저 ID
+              total_amount: calculateTotalQuantity(), // 총 상품 개수
+              products: detailedCartItems.map((item) => ({
+                product_id: item.product_id,
+                quantity: item.quantity,
+                price: item.price,
+                total_price: item.price * item.quantity,
+              })),
+            };
+
+            // 주문 데이터를 서버로 전송
+            const response = await axios.put(
+              `${BASE_URL}/api/orders`,
+              orderData,
+              {
+                headers: {
+                  Authorization: `Bearer ${token}`,
+                  "Content-Type": "application/json",
+                },
+              }
+            );
+
+            if (response.status === 201) {
+              Alert.alert("구매 완료", "주문이 완료되었습니다.", [
+                {
+                  text: "확인",
+                  onPress: () => {
+                    clearCartAfterPurchase(); // 주문 후 장바구니 비우기
+                  },
+                },
+              ]);
+            } else {
+              Alert.alert("주문 실패", "다시 시도해주세요.");
+            }
+          } catch (error) {
+            console.error("주문 처리 중 오류 발생:", error);
+            Alert.alert("오류", "주문 처리 중 오류가 발생했습니다.");
+          }
+        },
+      },
+    ]);
   };
 
   // 각 아이템을 렌더링하는 함수
@@ -213,9 +289,7 @@ const CartScreen = () => {
               <Text style={styles.quantityButton}>-</Text>
             </TouchableOpacity>
             <Text style={styles.quantity}>{item.quantity}</Text>
-            <TouchableOpacity
-              onPress={() => increaseQuantity(item.cart_items_id)}
-            >
+            <TouchableOpacity onPress={() => handleIncreaseQuantity(item)}>
               <Text style={styles.quantityButton}>+</Text>
             </TouchableOpacity>
           </View>

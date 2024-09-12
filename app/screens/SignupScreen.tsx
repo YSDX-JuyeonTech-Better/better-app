@@ -88,9 +88,14 @@ const SignUpScreen: React.FC = () => {
       Alert.alert("가입 완료", "회원가입이 완료되었습니다!");
       navigation.navigate("Profile");
     } catch (error) {
-      // 요청 실패 시 에러 처리
-      Alert.alert("가입 실패", "회원가입에 실패하였습니다.");
-      console.error("Signup Error: ", error);
+      if (error.response && error.response.status === 409) {
+        // 중복된 아이디 또는 이메일에 대한 409 에러 처리
+        Alert.alert("회원가입 실패", "이미 존재하는 아이디 또는 이메일입니다.");
+      } else {
+        // 기타 에러 처리
+        Alert.alert("회원가입 실패", "회원가입에 실패하였습니다.");
+        console.error("Signup Error: ", error);
+      }
     }
   };
 

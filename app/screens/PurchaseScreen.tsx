@@ -16,7 +16,7 @@ const PurchaseScreen = () => {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  const [expandedOrderId, setExpandedOrderId] = useState(null); // 주문 항목 확장 여부
+  const [expandedOrderIds, setExpandedOrderIds] = useState([]); // 여러 주문번호의 상태를 저장
   const [loadingDetails, setLoadingDetails] = useState(false); // 세부 정보 로딩 상태
   const [orderDetails, setOrderDetails] = useState({}); // 세부 정보 저장
 
@@ -84,10 +84,10 @@ const PurchaseScreen = () => {
 
   // 주문 항목 클릭 시 세부 정보 확장 및 API 호출
   const toggleExpand = async (orderId) => {
-    if (expandedOrderId === orderId) {
-      setExpandedOrderId(null); // 이미 확장된 주문을 클릭하면 접기
+    if (expandedOrderIds.includes(orderId)) {
+      setExpandedOrderIds(expandedOrderIds.filter((id) => id !== orderId)); // 이미 확장된 주문을 클릭하면 접기
     } else {
-      setExpandedOrderId(orderId); // 해당 주문을 클릭하면 펼치기
+      setExpandedOrderIds([...expandedOrderIds, orderId]); // 새로운 주문을 클릭하면 펼치기
       if (!orderDetails[orderId]) {
         await fetchOrderDetails(orderId); // 세부 정보가 없으면 API 호출
       }
@@ -100,17 +100,24 @@ const PurchaseScreen = () => {
   }, []);
 
   const renderOrderItem = ({ item }) => (
-    <TouchableOpacity
-      style={styles.orderItem}
-      onPress={() => toggleExpand(item.order_id)}
-    >
-      <Text style={styles.orderText}>주문 번호: {item.order_id}</Text>
-      <Text style={styles.orderText}>
-        주문 날짜: {new Date(item.order_date).toLocaleDateString()}
-      </Text>
-      <Text style={styles.orderText}>총 금액: {item.total_amount}원</Text>
+    <View style={styles.orderItem}>
+      <View style={styles.orderInfo}>
+        <Text style={styles.orderText}>주문 번호: {item.order_id}</Text>
+        <Text style={styles.orderText}>
+          주문 날짜: {new Date(item.order_date).toLocaleDateString()}
+        </Text>
+        <Text style={styles.orderText}>
+          총 금액: {item.total_amount.toLocaleString()}원
+        </Text>
+      </View>
+      <TouchableOpacity
+        style={styles.detailButton}
+        onPress={() => toggleExpand(item.order_id)}
+      >
+        <Text style={styles.detailButtonText}>상세보기</Text>
+      </TouchableOpacity>
 
-      {expandedOrderId === item.order_id && (
+      {expandedOrderIds.includes(item.order_id) && (
         <View style={styles.productList}>
           {loadingDetails && <ActivityIndicator size="small" color="#0000ff" />}
           {orderDetails[item.order_id] &&
@@ -131,7 +138,7 @@ const PurchaseScreen = () => {
             ))}
         </View>
       )}
-    </TouchableOpacity>
+    </View>
   );
 
   if (loading) {
@@ -188,9 +195,22 @@ const styles = StyleSheet.create({
     borderColor: "#ddd",
     borderRadius: 8,
   },
+  orderInfo: {
+    marginBottom: 8,
+  },
   orderText: {
     fontSize: 16,
     marginBottom: 4,
+  },
+  detailButton: {
+    alignSelf: "flex-end",
+    padding: 8,
+    backgroundColor: "#d3d3d3", // 연한 회색 버튼 색상
+    borderRadius: 8,
+  },
+  detailButtonText: {
+    color: "#000", // 검정색 글자
+    fontSize: 14,
   },
   productList: {
     marginTop: 10,
