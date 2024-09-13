@@ -305,21 +305,22 @@ const styles = StyleSheet.create({
   },
   scrollViewContent: {
     padding: 20,
-    paddingBottom: 150,
+    paddingBottom: 200, // 여백 추가하여 주소 입력 칸이 가려지지 않게 설정
   },
   label: {
     marginBottom: 6,
     color: "black",
-    fontSize: 14,
+    fontSize: 18, // 라벨 글자 크기 키움
     fontWeight: "500",
   },
   input: {
-    height: 40,
+    height: 50, // 입력 칸 높이 키움
     borderColor: "#ccc",
     borderWidth: 1,
     marginBottom: 20,
-    paddingHorizontal: 10,
+    paddingHorizontal: 14, // 입력 칸 안쪽 패딩 조정
     borderRadius: 5,
+    fontSize: 18, // 입력 칸의 글자 크기 키움
   },
   genderContainer: {
     flexDirection: "row",
@@ -329,7 +330,7 @@ const styles = StyleSheet.create({
   genderOption: {
     flex: 1,
     alignItems: "center",
-    paddingVertical: 10,
+    paddingVertical: 14, // 성별 선택 버튼 크기 조정
     borderWidth: 1,
     borderColor: "#ccc",
     borderRadius: 5,
@@ -341,9 +342,11 @@ const styles = StyleSheet.create({
   genderSelected: {
     color: "#000",
     fontWeight: "bold",
+    fontSize: 16, // 성별 선택 텍스트 크기 키움
   },
   genderUnselected: {
     color: "#aaa",
+    fontSize: 16, // 선택되지 않은 성별 텍스트 크기 조정
   },
   fixedFooter: {
     position: "absolute",
@@ -357,23 +360,23 @@ const styles = StyleSheet.create({
   },
   signupButton: {
     backgroundColor: "#000",
-    paddingVertical: 12,
+    paddingVertical: 16, // 회원가입 버튼 높이 증가
     borderRadius: 5,
     alignItems: "center",
     marginBottom: 12,
   },
   signupButtonText: {
     color: "#fff",
-    fontSize: 16,
+    fontSize: 20, // 회원가입 버튼 텍스트 크기 증가
   },
   loginButton: {
-    paddingVertical: 12,
+    paddingVertical: 16, // 로그인 버튼 높이 증가
     borderRadius: 5,
     alignItems: "center",
   },
   loginButtonText: {
     color: "#000",
-    fontSize: 16,
+    fontSize: 20, // 로그인 버튼 텍스트 크기 증가
   },
 });
 

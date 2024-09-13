@@ -92,7 +92,9 @@ const CategoryScreen = () => {
     >
       <Image source={{ uri: item.image_link }} style={styles.productImage} />
       <Text style={styles.productBrand}>{item.brand}</Text>
-      <Text style={styles.productName}>{item.name}</Text>
+      <Text style={styles.productName}>
+        {item.name.length > 20 ? `${item.name.slice(0, 20)}...` : item.name}
+      </Text>
       <Text style={styles.productPrice}>{`₩${formatPrice(item.price)}`}</Text>
     </TouchableOpacity>
   );

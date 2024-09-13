@@ -108,6 +108,9 @@ const HomeScreen: React.FC = () => {
   const renderProduct = ({ item }: { item: any }) => {
     const imageUrl = `https:${item.image_link}`; // 이미지 링크가 "//"로 시작하는 경우 "https:" 추가
 
+    const shortenedName =
+      item.name.length > 10 ? `${item.name.substring(0, 20)}...` : item.name; // 20글자까지 보이게
+
     return (
       <TouchableOpacity
         style={styles.productItem}
@@ -117,7 +120,7 @@ const HomeScreen: React.FC = () => {
       >
         <Image source={{ uri: imageUrl }} style={styles.productImage} />
         <Text style={styles.productBrand}>{item.brand}</Text>
-        <Text style={styles.productName}>{item.name}</Text>
+        <Text style={styles.productName}>{shortenedName}</Text>
         <Text style={styles.productPrice}>{`₩${formatPrice(item.price)}`}</Text>
       </TouchableOpacity>
     );

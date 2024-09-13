@@ -6,7 +6,6 @@ import {
   FlatList,
   ActivityIndicator,
   TouchableOpacity,
-  Image,
 } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import axios from "axios";
@@ -69,6 +68,7 @@ const PurchaseScreen = () => {
       });
 
       if (response.status === 200 && response.data.success) {
+        console.log("purchase Screen 응답 데이터 확인 : ", response.data.data); // 응답 데이터 콘솔에 출력
         setOrderDetails((prevDetails) => ({
           ...prevDetails,
           [orderId]: response.data.data, // 주문 ID를 키로 세부 정보 저장
@@ -116,20 +116,15 @@ const PurchaseScreen = () => {
       >
         <Text style={styles.detailButtonText}>상세보기</Text>
       </TouchableOpacity>
-
       {expandedOrderIds.includes(item.order_id) && (
         <View style={styles.productList}>
           {loadingDetails && <ActivityIndicator size="small" color="#0000ff" />}
           {orderDetails[item.order_id] &&
             orderDetails[item.order_id].map((product) => (
               <View key={product.product_id} style={styles.productItem}>
-                <Image
-                  source={{ uri: product.image }}
-                  style={styles.productImage}
-                />
                 <View style={styles.productDetails}>
                   <Text style={styles.productBrand}>{product.brand}</Text>
-                  <Text style={styles.productName}>{product.name}</Text>
+                  <Text style={styles.productName}>{product.product_name}</Text>
                   <Text style={styles.productPrice}>
                     {product.price.toLocaleString()}원
                   </Text>
@@ -224,11 +219,6 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     borderWidth: 1,
     borderColor: "#ddd",
-  },
-  productImage: {
-    width: 60,
-    height: 60,
-    marginRight: 16,
   },
   productDetails: {
     flex: 1,

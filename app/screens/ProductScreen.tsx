@@ -10,16 +10,14 @@ import {
   Animated,
   StatusBar,
   Platform,
+  Alert,
 } from "react-native";
 import { RouteProp, useNavigation, useRoute } from "@react-navigation/native";
-import { Ionicons } from "@expo/vector-icons";
-
-import { GRAY } from "@/constants/Colors";
-import { useCart } from "./CartProvider";
-import Hr from "@/components/Hr";
 import axios from "axios";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import BASE_URL from "../config";
+import { GRAY } from "@/constants/Colors";
+import Hr from "@/components/Hr";
 
 // API 데이터 타입 정의
 type Product = {
@@ -44,12 +42,10 @@ const ProductScreen = () => {
   const { productId } = route.params;
   const navigation = useNavigation(); // 네비게이션 객체 가져오기
 
-  const { addToCart } = useCart(); // CartContext에서 addToCart 가져오기
-
   const [product, setProduct] = useState<Product | null>(null);
-  const [isFavorite, setIsFavorite] = useState(false); // 찜하기 상태 관리
   const [isModalVisible, setIsModalVisible] = useState(false); // 모달 상태 관리
   const [fadeAnim] = useState(new Animated.Value(1)); // 애니메이션 상태 관리
+  const [showFullDescription, setShowFullDescription] = useState(false); // 설명 전체 보기 상태
 
   useEffect(() => {
     const fetchProduct = async () => {
@@ -74,72 +70,122 @@ const ProductScreen = () => {
     );
   }
 
-  const toggleFavorite = () => {
-    setIsFavorite(!isFavorite); // 찜하기 상태를 토글
+  // 외부 API를 호출하여 orders에 주문 데이터를 추가하는 함수
+  const placeOrder = async () => {
+    try {
+      const token = await AsyncStorage.getItem("token");
+      const userId = await AsyncStorage.getItem("idx"); // 사용자의 user_idx
+
+      if (!token || !userId) {
+        Alert.alert("로그인이 필요합니다.");
+        return;
+      }
+
+      const orderData = {
+        user_idx: parseInt(userId), // 유저 ID
+        total_amount: 1, // 기본 수량 1
+        products: [
+          {
+            product_id: product.id,
+            quantity: 1, // 수량은 1로 고정
+            price: product.price,
+            total_price: product.price * 1, // 기본 수량 1에 따른 총 가격
+          },
+        ],
+      };
+
+      // 주문 데이터를 서버로 전송
+      const response = await axios.put(`${BASE_URL}/api/orders`, orderData, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      });
+
+      if (response.status === 201) {
+        Alert.alert("주문 완료", "상품이 성공적으로 주문되었습니다.", [
+          {
+            text: "확인",
+            onPress: () => navigation.goBack(), // 주문 완료 후 이전 화면으로 이동
+          },
+        ]);
+      } else {
+        Alert.alert("주문 실패", "다시 시도해주세요.");
+      }
+    } catch (error) {
+      console.error("주문 처리 중 오류 발생:", error);
+      Alert.alert("오류", "주문 처리 중 오류가 발생했습니다.");
+    }
   };
 
-  // 장바구니에 상품 추가하는 함수
-  const handleAddToCart = async () => {
-    if (product) {
-      try {
-        const token = await AsyncStorage.getItem("token");
-        const userId = await AsyncStorage.getItem("idx"); // 사용자의 user_idx
+  // 장바구니에 추가하는 함수
+  const addToCart = async () => {
+    try {
+      const token = await AsyncStorage.getItem("token");
+      const userId = await AsyncStorage.getItem("idx");
 
-        if (!token || !userId) {
-          Alert.alert("로그인이 필요합니다.");
-          return;
-        }
-
-        // 장바구니에 담을 데이터
-        const cartData = {
-          product_id: product.id,
-          quantity: 1, // 기본 수량은 1로 설정
-          price: product.price,
-        };
-
-        console.log("전송할 장바구니 데이터/ProductScreen:", cartData); // 전송 전 데이터를 로그로 확인... console...
-
-        // 서버로 장바구니 정보를 전송
-        const response = await axios.put(`${BASE_URL}/api/carts`, cartData, {
-          headers: {
-            Authorization: `Bearer ${token}`, // 인증을 위한 토큰
-            "Content-Type": "application/json",
-          },
-        });
-
-        console.log("서버 응답:", response); // 서버에서 받은 응답을 로그로 확인
-
-        if (response.status === 201) {
-          // 장바구니에 담았다는 모달을 띄움
-          console.log("장바구니에 담겼습니다!"); // 성공 메시지 출력
-          setIsModalVisible(true);
-
-          // 모달이 2초간 표시되었다가 사라지도록 설정
-          Animated.sequence([
-            Animated.timing(fadeAnim, {
-              toValue: 1,
-              duration: 0,
-              useNativeDriver: true,
-            }),
-            Animated.timing(fadeAnim, {
-              toValue: 1,
-              duration: 2000, // 2초 동안 보이도록 설정
-              useNativeDriver: true,
-            }),
-            Animated.timing(fadeAnim, {
-              toValue: 0,
-              duration: 0, // 3초 후 즉시 사라지도록 설정
-              useNativeDriver: true,
-            }),
-          ]).start(() => setIsModalVisible(false));
-        } else {
-          Alert.alert("장바구니 추가 실패", "다시 시도해주세요.");
-        }
-      } catch (error) {
-        console.error("Cart Add Error: ", error);
-        Alert.alert("오류", "장바구니 추가 중 오류가 발생했습니다.");
+      if (!token || !userId) {
+        Alert.alert("로그인이 필요합니다.");
+        return;
       }
+
+      const cartData = {
+        product_id: product.id,
+        quantity: 1, // 장바구니에 담을 기본 수량은 1로 설정
+        price: product.price,
+      };
+
+      const response = await axios.put(`${BASE_URL}/api/carts`, cartData, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      });
+
+      if (response.status === 201) {
+        setIsModalVisible(true);
+        Animated.sequence([
+          Animated.timing(fadeAnim, {
+            toValue: 1,
+            duration: 0,
+            useNativeDriver: true,
+          }),
+          Animated.timing(fadeAnim, {
+            toValue: 1,
+            duration: 2000, // 2초 동안 보이도록 설정
+            useNativeDriver: true,
+          }),
+          Animated.timing(fadeAnim, {
+            toValue: 0,
+            duration: 0, // 3초 후 즉시 사라지도록 설정
+            useNativeDriver: true,
+          }),
+        ]).start(() => setIsModalVisible(false));
+      } else {
+        Alert.alert("장바구니 추가 실패", "다시 시도해주세요.");
+      }
+    } catch (error) {
+      console.error("Cart Add Error:", error);
+      Alert.alert("오류", "장바구니 추가 중 오류가 발생했습니다.");
     }
+  };
+
+  // 구매 버튼을 눌렀을 때 실행하는 함수
+  const handlePurchase = () => {
+    Alert.alert(
+      "구매하시겠습니까?",
+      `${product.name} 상품을 구매하시겠습니까?`,
+      [
+        {
+          text: "취소",
+          style: "cancel",
+        },
+        {
+          text: "예",
+          onPress: placeOrder, // 예를 선택하면 주문 함수 호출
+        },
+      ]
+    );
   };
 
   return (
@@ -160,31 +206,43 @@ const ProductScreen = () => {
           onPress={() =>
             navigation.navigate("BrandScreen", { brandName: product.brand })
           } // BrandScreen으로 이동
+          style={styles.brandButton} // 버튼 스타일 추가
         >
-          <Text style={styles.brandName}>{product.brand} &gt;</Text>
+          <View style={styles.brandButtonContent}>
+            <Text style={styles.brandButtonText}>{product.brand}</Text>
+            <Text style={styles.brandButtonArrow}> &gt;</Text>
+          </View>
         </TouchableOpacity>
 
         <Text style={styles.productName}>{product.name}</Text>
         <Text style={styles.price}>{`₩${parseInt(
           product.price
         ).toLocaleString()}`}</Text>
-        <Text style={styles.description}>{product.description}</Text>
+
+        {/* 설명 글자수 제한 및 전체 보기 기능 구현 */}
+        <View style={styles.descriptionContainer}>
+          <Text
+            style={styles.description}
+            numberOfLines={showFullDescription ? undefined : 3} // 전체 보기 여부에 따라 줄 수 조정
+          >
+            {product.description}
+          </Text>
+          <TouchableOpacity
+            onPress={() => setShowFullDescription(!showFullDescription)}
+            style={styles.showMoreButton}
+          >
+            <Text style={styles.showMoreButtonText}>
+              {showFullDescription ? "접기" : "더 보기"}
+            </Text>
+          </TouchableOpacity>
+        </View>
       </ScrollView>
 
       <View style={styles.buttonContainer}>
-        <TouchableOpacity style={styles.button} onPress={toggleFavorite}>
-          <Text style={styles.buttonText}>찜하기&nbsp;</Text>
-          <Ionicons
-            name={isFavorite ? "heart" : "heart-outline"} // 상태에 따라 아이콘 변경
-            size={24}
-            color="black"
-            style={styles.icon}
-          />
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.button} onPress={handleAddToCart}>
+        <TouchableOpacity style={styles.button} onPress={addToCart}>
           <Text style={styles.buttonText}>장바구니</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.button} onPress={() => {}}>
+        <TouchableOpacity style={styles.button} onPress={handlePurchase}>
           <Text style={styles.buttonText}>구매하기</Text>
         </TouchableOpacity>
       </View>
@@ -228,10 +286,33 @@ const styles = StyleSheet.create({
     resizeMode: "contain",
     marginBottom: 16,
   },
-  brandName: {
-    fontSize: 24,
+  brandButton: {
+    alignSelf: "flex-start", // 버튼이 글자 크기만큼만 차지하도록 설정
+    marginBottom: 16, // 버튼 아래 여백
+  },
+  brandButtonContent: {
+    flexDirection: "row", // 브랜드 이름과 > 기호를 가로로 나란히 배치
+    alignItems: "center", // 세로로 중앙 정렬
+    paddingVertical: 10, // 상하 패딩을 더 크게 설정
+    paddingHorizontal: 14, // 좌우 패딩을 더 크게 설정
+    backgroundColor: "#f0f0f0", // 버튼의 배경색
+    borderRadius: 5, // 모서리를 둥글게
+    borderWidth: 1, // 테두리 추가
+    borderColor: GRAY.DARK, // 테두리 색상
+    shadowColor: "#000", // 그림자 색상
+    shadowOffset: { width: 0, height: 2 }, // 그림자 위치
+    shadowOpacity: 0.1, // 그림자 투명도
+    shadowRadius: 8, // 그림자 퍼짐 정도
+    elevation: 2, // Android 그림자
+  },
+  brandButtonText: {
+    fontSize: 16, // 텍스트 크기
     fontWeight: "bold",
-    marginBottom: 8,
+    color: "#000", // 글자 색상
+  },
+  brandButtonArrow: {
+    fontSize: 16, // > 기호 크기
+    color: "#000", // > 기호 색상
   },
   productName: {
     fontSize: 16,
@@ -242,9 +323,20 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     marginBottom: 16,
   },
+  descriptionContainer: {
+    position: "relative",
+  },
   description: {
-    fontSize: 20,
-    marginBottom: 16,
+    fontSize: 16,
+    color: "#333",
+    lineHeight: 22,
+  },
+  showMoreButton: {
+    marginTop: 8,
+  },
+  showMoreButtonText: {
+    color: "#007BFF",
+    fontSize: 14,
   },
   buttonContainer: {
     position: "absolute",
@@ -252,7 +344,7 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     flexDirection: "row",
-    justifyContent: "space-between", // 버튼들이 화면을 꽉 채우도록
+    justifyContent: "space-between", // 장바구니와 구매하기 버튼을 양쪽에 배치
     backgroundColor: "white",
     paddingVertical: 16,
     paddingHorizontal: 10,
@@ -273,7 +365,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "bold",
   },
-  icon: {},
   modalContainer: {
     flex: 1,
     justifyContent: "center",

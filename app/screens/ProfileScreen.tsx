@@ -7,6 +7,7 @@ import {
   TextInput,
   TouchableOpacity,
   ScrollView,
+  Alert,
 } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useIsFocused } from "@react-navigation/native";
@@ -130,6 +131,59 @@ const ProfileScreen: React.FC = ({ navigation }: any) => {
     navigation.navigate("PurchaseScreen");
   };
 
+  // 회원 탈퇴 처리 함수
+  const handleDeleteAccount = async () => {
+    Alert.alert(
+      "회원 탈퇴",
+      "정말로 탈퇴하시겠습니까? 이 작업은 되돌릴 수 없습니다.",
+      [
+        {
+          text: "취소",
+          style: "cancel",
+        },
+        {
+          text: "예",
+          onPress: async () => {
+            try {
+              const token = await AsyncStorage.getItem("token");
+              const idx = await AsyncStorage.getItem("idx");
+
+              if (!token || !idx) {
+                Alert.alert("로그인이 필요합니다.");
+                return;
+              }
+
+              const response = await axios.delete(
+                `${BASE_URL}/api/users/${idx}`,
+                {
+                  headers: {
+                    Authorization: `Bearer ${token}`,
+                  },
+                }
+              );
+
+              if (response.status === 200) {
+                Alert.alert(
+                  "회원 탈퇴 완료",
+                  "계정이 성공적으로 삭제되었습니다."
+                );
+                await AsyncStorage.removeItem("token");
+                await AsyncStorage.removeItem("idx");
+                navigation.navigate("Login");
+              } else {
+                Alert.alert("회원 탈퇴 실패", "다시 시도해주세요.");
+              }
+            } catch (error) {
+              console.error("Error deleting account:", error);
+              Alert.alert("오류", "계정 삭제 중 오류가 발생했습니다.");
+            }
+          },
+          style: "destructive", // 버튼 색상 빨간색
+        },
+      ]
+    );
+  };
+
   return (
     <ScrollView style={styles.container}>
       {isAuthenticated ? (
@@ -229,6 +283,14 @@ const ProfileScreen: React.FC = ({ navigation }: any) => {
           <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
             <Text style={styles.logoutButtonText}>로그아웃</Text>
           </TouchableOpacity>
+
+          {/* 회원 탈퇴 버튼 */}
+          <TouchableOpacity
+            style={styles.deleteButton}
+            onPress={handleDeleteAccount}
+          >
+            <Text style={styles.deleteButtonText}>회원 탈퇴</Text>
+          </TouchableOpacity>
         </>
       ) : (
         <Text style={styles.text}>Please log in.</Text>
@@ -317,6 +379,19 @@ const styles = StyleSheet.create({
   },
   logoutButtonText: {
     color: "#fff",
+    fontSize: 16,
+  },
+  deleteButton: {
+    borderWidth: 1,
+    borderColor: "red",
+    paddingVertical: 16,
+    marginHorizontal: 16,
+    marginTop: 12,
+    borderRadius: 8,
+    alignItems: "center",
+  },
+  deleteButtonText: {
+    color: "red",
     fontSize: 16,
   },
   text: {

@@ -9,6 +9,7 @@ import {
 } from "react-native";
 import { useNavigation, useRoute } from "@react-navigation/native";
 import axios from "axios"; // Axios 사용
+import BASE_URL from "../config";
 
 const BrandScreen = () => {
   const [brandProducts, setBrandProducts] = useState([]); // 브랜드의 모든 상품을 저장할 상태
@@ -21,16 +22,13 @@ const BrandScreen = () => {
     const fetchProducts = async () => {
       try {
         // Axios를 사용하여 API에서 해당 브랜드의 상품을 가져옴
-        const response = await axios.get(
-          "http://192.168.0.34:4000/api/products",
-          {
-            params: {
-              page: 1, // 첫 페이지
-              pageSize: 931, // 충분한 데이터를 가져오기
-              brand: brandName, // 브랜드 이름을 필터로 사용
-            },
-          }
-        );
+        const response = await axios.get(`${BASE_URL}/api/products`, {
+          params: {
+            page: 1, // 첫 페이지
+            pageSize: 931, // 충분한 데이터를 가져오기
+            brand: brandName, // 브랜드 이름을 필터로 사용
+          },
+        });
         const filteredProducts = response.data.data.filter(
           (item) => item.price > 0 && item.image_link // 가격이 0이 아니고 이미지가 있는 상품만 필터링
         );
@@ -136,6 +134,7 @@ const styles = StyleSheet.create({
     height: 120,
     borderRadius: 10,
     marginBottom: 10,
+    resizeMode: "contain",
   },
   productName: {
     fontSize: 14,

@@ -45,8 +45,6 @@ const LoginScreen: React.FC = ({ navigation }: any) => {
         await AsyncStorage.setItem("token", response.data.token); // token값 저장
         await AsyncStorage.setItem("idx", String(response.data.idx)); // idx 저장
 
-        //
-
         Alert.alert("로그인 성공", "환영합니다!");
         navigation.navigate("Profile"); // 프로필 화면으로 이동
       } else {
@@ -99,29 +97,30 @@ const styles = StyleSheet.create({
   input: {
     borderWidth: 1,
     borderColor: "#ccc",
-    padding: 8,
-    marginBottom: 16,
+    padding: 16, // 입력 칸의 크기를 더 크게 만듭니다.
+    marginBottom: 20, // 입력 칸 사이의 간격도 넓힙니다.
     borderRadius: 4,
+    fontSize: 18, // 글자 크기 키움
   },
   loginButton: {
     backgroundColor: "#000",
-    paddingVertical: 12,
+    paddingVertical: 16, // 버튼의 크기를 더 크게 만듭니다.
     borderRadius: 5,
     alignItems: "center",
-    marginBottom: 12,
+    marginBottom: 20,
   },
   loginButtonText: {
     color: "#fff",
-    fontSize: 16,
+    fontSize: 20, // 로그인 버튼의 글자 크기도 키움
   },
   signupButton: {
-    paddingVertical: 12,
+    paddingVertical: 16, // 회원가입 버튼의 크기도 키움
     borderRadius: 5,
     alignItems: "center",
   },
   signupButtonText: {
     color: "#000",
-    fontSize: 16,
+    fontSize: 20, // 회원가입 버튼의 글자 크기도 키움
   },
 });
 
