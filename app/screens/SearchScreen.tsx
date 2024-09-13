@@ -73,6 +73,9 @@ const SearchScreen = () => {
       ? `https:${item.image_link}`
       : item.image_link;
 
+    const shortenedName =
+      item.name.length > 10 ? `${item.name.substring(0, 20)}...` : item.name; // 20글자까지 보이게
+
     return (
       <TouchableOpacity
         style={styles.resultItem}
@@ -83,7 +86,7 @@ const SearchScreen = () => {
       >
         <Image source={{ uri: imageUrl }} style={styles.productImage} />
         <Text style={styles.productBrand}>{item.brand}</Text>
-        <Text style={styles.productName}>{item.name}</Text>
+        <Text style={styles.productName}>{shortenedName}</Text>
         <Text style={styles.productPrice}>
           {`₩${parseInt(item.price).toLocaleString()}`}
         </Text>

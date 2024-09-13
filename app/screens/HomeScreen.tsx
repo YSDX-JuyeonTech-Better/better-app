@@ -19,13 +19,13 @@ const { width, height: screenHeight } = Dimensions.get("window");
 // 배너 데이터
 const bannerData = [
   {
-    source: require("../../assets/images/banner1.jpg"),
+    source: require("../../assets/images/banner1.png"),
   },
   {
-    source: require("../../assets/images/banner9.jpg"),
+    source: require("../../assets/images/banner9.png"),
   },
   {
-    source: require("../../assets/images/banner3.jpg"),
+    source: require("../../assets/images/banner3.png"),
   },
 ];
 
@@ -68,7 +68,7 @@ const HomeScreen: React.FC = () => {
         );
         //     console.log("responsedata : ", response.data);
         // 상품을 랜덤하게 섞고, 12개만 추출
-        const shuffledProducts = shuffleArray(validProducts).slice(0, 12);
+        const shuffledProducts = shuffleArray(validProducts).slice(0, 9);
 
         setProducts(shuffledProducts); // 랜덤으로 추출된 상품을 상태로 저장
       } catch (error) {
@@ -99,7 +99,7 @@ const HomeScreen: React.FC = () => {
       <Image
         source={item.source}
         style={styles.bannerImage}
-        resizeMode="cover" // 이미지를 화면에 꽉 차게 설정
+        resizeMode="contain" // 이미지를 화면에 꽉 차게 설정
       />
     );
   };
