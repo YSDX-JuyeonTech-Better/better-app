@@ -147,6 +147,11 @@ const CartScreen = () => {
 
       console.log("삭제 요청 응답 상태 코드:", response.status);
 
+      if (response.status === 200) {
+        // 삭제 성공 후 Alert 창 표시
+        Alert.alert("삭제 완료", "상품이 장바구니에서 삭제되었습니다.");
+      }
+
       // UI 업데이트: 해당 항목을 목록에서 제거
       const updatedItems = detailedCartItems.filter(
         (cartItem) => cartItem.cart_items_id !== cartItemsId
@@ -173,7 +178,14 @@ const CartScreen = () => {
         },
       ]);
     } else {
+      // 수량이 1이 아닐 때도 수량 감소 가능하게 함
       decreaseQuantity(item.cart_items_id); // cart_items_id로 수량 감소
+      const updatedItems = detailedCartItems.map((cartItem) =>
+        cartItem.cart_items_id === item.cart_items_id
+          ? { ...cartItem, quantity: cartItem.quantity - 1 }
+          : cartItem
+      );
+      setDetailedCartItems(updatedItems);
     }
   };
 

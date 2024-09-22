@@ -73,13 +73,24 @@ const ProfileScreen: React.FC = ({ navigation }: any) => {
   }, [isFocused, navigation]);
 
   const handleLogout = async () => {
-    try {
-      await AsyncStorage.removeItem("token");
-      await AsyncStorage.removeItem("idx");
-      navigation.navigate("Login");
-    } catch (error) {
-      console.error("Logout Error: ", error);
-    }
+    Alert.alert("로그아웃 확인", "로그아웃 하시겠습니까?", [
+      {
+        text: "취소",
+        style: "cancel",
+      },
+      {
+        text: "예",
+        onPress: async () => {
+          try {
+            await AsyncStorage.removeItem("token");
+            await AsyncStorage.removeItem("idx");
+            navigation.navigate("Login");
+          } catch (error) {
+            console.error("Logout Error: ", error);
+          }
+        },
+      },
+    ]);
   };
 
   const handleImagePick = async () => {
@@ -97,46 +108,7 @@ const ProfileScreen: React.FC = ({ navigation }: any) => {
 
   const handleEditToggle = async () => {
     if (isEditing) {
-      try {
-        const token = await AsyncStorage.getItem("token");
-        const idx = await AsyncStorage.getItem("idx");
-
-        const response = await axios.put(
-          `${BASE_URL}/api/users/${idx}`,
-          {
-            name,
-            email,
-            password,
-            gender,
-            phone_num: phoneNum,
-            address,
-          },
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          }
-        );
-
-        console.log("User data updated:", response.data);
-      } catch (error) {
-        console.error("Failed to update user data:", error);
-      }
-    }
-
-    setIsEditing(!isEditing);
-  };
-
-  const handleNavigateToOrderHistory = () => {
-    navigation.navigate("PurchaseScreen");
-  };
-
-  // 회원 탈퇴 처리 함수
-  const handleDeleteAccount = async () => {
-    Alert.alert(
-      "회원 탈퇴",
-      "정말로 탈퇴하시겠습니까? 이 작업은 되돌릴 수 없습니다.",
-      [
+      Alert.alert("수정 확인", "수정하시겠습니까?", [
         {
           text: "취소",
           style: "cancel",
@@ -148,13 +120,16 @@ const ProfileScreen: React.FC = ({ navigation }: any) => {
               const token = await AsyncStorage.getItem("token");
               const idx = await AsyncStorage.getItem("idx");
 
-              if (!token || !idx) {
-                Alert.alert("로그인이 필요합니다.");
-                return;
-              }
-
-              const response = await axios.delete(
+              const response = await axios.put(
                 `${BASE_URL}/api/users/${idx}`,
+                {
+                  name,
+                  email,
+                  password,
+                  gender,
+                  phone_num: phoneNum,
+                  address,
+                },
                 {
                   headers: {
                     Authorization: `Bearer ${token}`,
@@ -162,26 +137,76 @@ const ProfileScreen: React.FC = ({ navigation }: any) => {
                 }
               );
 
-              if (response.status === 200) {
-                Alert.alert(
-                  "회원 탈퇴 완료",
-                  "계정이 성공적으로 삭제되었습니다."
-                );
-                await AsyncStorage.removeItem("token");
-                await AsyncStorage.removeItem("idx");
-                navigation.navigate("Login");
-              } else {
-                Alert.alert("회원 탈퇴 실패", "다시 시도해주세요.");
-              }
+              console.log("User data updated:", response.data);
+
+              // 수정 완료 후 Alert 창 표시
+              Alert.alert(
+                "수정 완료",
+                "프로필 정보가 성공적으로 수정되었습니다."
+              );
             } catch (error) {
-              console.error("Error deleting account:", error);
-              Alert.alert("오류", "계정 삭제 중 오류가 발생했습니다.");
+              console.error("Failed to update user data:", error);
+              Alert.alert("오류", "프로필 수정 중 오류가 발생했습니다.");
             }
           },
-          style: "destructive", // 버튼 색상 빨간색
         },
-      ]
-    );
+      ]);
+    }
+
+    setIsEditing(!isEditing);
+  };
+
+  const handleNavigateToOrderHistory = () => {
+    navigation.navigate("PurchaseScreen");
+  };
+
+  // 회원 탈퇴 처리 함수
+  const handleDeleteAccount = async () => {
+    Alert.alert("회원 탈퇴", "정말로 탈퇴하시겠습니까?", [
+      {
+        text: "취소",
+        style: "cancel",
+      },
+      {
+        text: "예",
+        onPress: async () => {
+          try {
+            const token = await AsyncStorage.getItem("token");
+            const idx = await AsyncStorage.getItem("idx");
+
+            if (!token || !idx) {
+              Alert.alert("로그인이 필요합니다.");
+              return;
+            }
+
+            const response = await axios.delete(
+              `${BASE_URL}/api/users/${idx}`,
+              {
+                headers: {
+                  Authorization: `Bearer ${token}`,
+                },
+              }
+            );
+
+            if (response.status === 200) {
+              Alert.alert(
+                "회원 탈퇴 완료",
+                "계정이 성공적으로 삭제되었습니다."
+              );
+              await AsyncStorage.removeItem("token");
+              await AsyncStorage.removeItem("idx");
+              navigation.navigate("Login");
+            } else {
+              Alert.alert("회원 탈퇴 실패", "다시 시도해주세요.");
+            }
+          } catch (error) {
+            console.error("Error deleting account:", error);
+            Alert.alert("오류", "계정 삭제 중 오류가 발생했습니다.");
+          }
+        },
+        style: "destructive", // 버튼 색상 빨간색
+      },
+    ]);
   };
 
   return (
@@ -253,7 +278,7 @@ const ProfileScreen: React.FC = ({ navigation }: any) => {
                   style={styles.saveButton}
                   onPress={handleEditToggle}
                 >
-                  <Text style={styles.saveButtonText}>수정 완료</Text>
+                  <Text style={styles.saveButtonText}>수정하기</Text>
                 </TouchableOpacity>
               </>
             ) : (
